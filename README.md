@@ -1,5 +1,5 @@
 # ODBgrabber
-
+![](odbdemo2.gif)
 ```
 ODBgrabber - Query open databases and grab only the data you care about!
 
@@ -54,8 +54,6 @@ optional arguments:
                      sources.
 
  ```
-
-![](odbdemo2.gif)
 
 Wrote this as wanted to create one-stop shop for searching for, parsing and analyzing open databases in order to get the data I care about. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
 Other tools seem to either only query open databases or dump them once you've identified them. This tool is one-stop shop for querying and dumping.
