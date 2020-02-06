@@ -28,3 +28,55 @@ Some features:
 
 Next steps are to clean up code a bit more and multithread processes.
 At the moment the tool only works with Elastic and MongoDB, but have plans to expand in time.
+
+ ODBgrabber - Query open databases and grab only the data you care about!
+
+    Examples: python ODBgrabber.py -cn US -p 8080 -t users --elastic --shodanquery --csv --limit 100
+              python ODBgrabber.py -ip 192.168.2:8080 --mongo --ignorelogs --nosizelimits
+    _____________________________________________________________________________
+
+usage: odbgrabber.py [-h] [--ip] [--index] [--shodanquery] [--limit] [--port]
+                     [--country] [--terms] [--paste] [--mongo] [--elastic]
+                     [--ignorelogs] [--nosizelimits] [--csv] [--convertES]
+                     [--dontflatten] [--basic]
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --ip , -ip         Query one server. Add port, e.g.
+                     '192.165.2.1:8080', or will assume default
+                     ports for each db type, e.g. 9200 for ES. Add ES or MDB
+                     flags to specify parser.
+  --index , -i       You know exactly what ES index you want? Go for it. Use
+                     this with IP arg and don't forget to add '--elastic' flag
+  --shodanquery      Add this flag if using Shodan and also specify whether
+                     want ES or MDB w/ flags.
+  --limit , -l       Specify max number of Shodan results per query.
+                     Default is 1000.
+  --port , -p        Specify if want to filter by port in Shodan query.
+  --country , -cn    Specify country filter in Shodan query with two-
+                     letter country code.
+  --terms , -t       Enter any additional Shodan query terms you want here,
+                     e.g. users or maybe add additional filters?
+  --paste            Query DBs hosted on line-separated IPs from
+                     clipboard. Add port otherwise will assume default ports
+                     for each db type, e.g. 9200 for ES. Add ES or MDB flags
+                     to specify parser.
+  --mongo            Use for IP, Shodan and Paste methods to specify parser.
+  --elastic          Use for IP, Shodan and Paste methods to specify
+                     parser.
+  --ignorelogs       add this flag to connect to a server you've already
+                     checked out.
+  --nosizelimits     Add if you want to dump index no matter how big it
+                     is. Careful! Current max doc count is set to
+                     800,000.
+  --csv              Add this flag if want to convert JSON dumps from ES into
+                     CSV format on the fly. Would NOT use in
+                     conjunction with nosizelimit flag as may kill your memory
+  --convertES , -c   Convert JSON file or folder of JSON dumps to CSVs
+                     after the fact. Enter full path or folder name in current
+                     working directory
+  --dontflatten      Add this flag if run into memory issues converting JSON
+                     files to CSV during post-processing.
+  --basic            Add this flag with CSV flag if your JSON dumps are just
+                     line separated full records that you got from other
+                     sources.
