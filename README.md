@@ -1,6 +1,8 @@
 # ODBgrabber
 search, parse and dump open ES and MongoDB directories and grab only the data you care about
 
+(odbdemo_crop.gif)
+
 Wrote this as wanted to create one-stop shop for searching for, parsing and analyzing open databases in order to get the data I care about.
 Other tools seem to either query open databases or dump them once you've identified them. This tool is one-stop shop for querying and dumping.
 
