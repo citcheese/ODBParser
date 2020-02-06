@@ -29,7 +29,7 @@ Some features:
 Next steps are to clean up code a bit more and multithread processes.
 At the moment the tool only works with Elastic and MongoDB, but have plans to expand in time.
 
- ODBgrabber - Query open databases and grab only the data you care about!
+ODBgrabber - Query open databases and grab only the data you care about!
 
     Examples: python ODBgrabber.py -cn US -p 8080 -t users --elastic --shodanquery --csv --limit 100
               python ODBgrabber.py -ip 192.168.2:8080 --mongo --ignorelogs --nosizelimits
@@ -80,3 +80,5 @@ optional arguments:
   --basic            Add this flag with CSV flag if your JSON dumps are just
                      line separated full records that you got from other
                      sources.
+
+ 
