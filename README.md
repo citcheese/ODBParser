@@ -33,8 +33,7 @@ optional arguments:
   --elastic          Use for IP, Shodan and Paste methods to specify parser.
   --ignorelogs       add this flag to connect to a server you've already checked out.
   --nosizelimits     Add if you want to dump index no matter how big it
-                     is. Careful! Current max doc count is set to
-                     800,000.
+                     is. Careful! Current max doc count is set to 800,000.
   --csv              Add this flag if want to convert JSON dumps from ES into
                      CSV format on the fly. Would NOT use in
                      conjunction with nosizelimit flag as may kill your memory
