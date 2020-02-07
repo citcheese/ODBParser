@@ -22,9 +22,11 @@ To do:
 basepath = ODBconfig.basepath
 typelist = ODBconfig.typelist
 oldips=ODBconfig.oldips
-numfieldsreq = ODBconfig.numfieldsrequired
+numfieldsreq = int(ODBconfig.numfieldsrequired)
 indicesIwant = ODBconfig.ESindicesIwant #collectionamesIwant = ["users","employees","patients","customers","clients"]
 
+if not basepath:
+    basepath = os.path.join(os.getcwd(),"open directory dumps")
 
 if not os.path.exists(basepath):
     os.makedirs(basepath)

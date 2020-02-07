@@ -1,15 +1,15 @@
 import os
 from elasticsearch import Elasticsearch, exceptions
-import time
-from urllib3.util.timeout import Timeout
-import urllib
 import json
-from elasticsearch.helpers import reindex, scan
 from colorama import Fore
 import ODBconfig
 
 basepath = ODBconfig.basepath
+if not basepath:
+    basepath = os.path.join(os.getcwd(),"open directory dumps")
 
+if not os.path.exists(basepath):
+    os.makedirs(basepath)
 #to do: split json file once gets to 10gb? or maybe not, dunno
 #issue when es instance is 1.7 elasticsearch.exceptions.RequestError: RequestError(400, 'ElasticsearchIllegalArgumentException[Failed to decode scrollId]; nested: IOException[Bad Base64 input character decimal 123 in array position 0]; ', 'ElasticsearchIllegalArgumentException[Failed to decode scrollId]; nested: IOException[Bad Base64 input character decimal 123 in array position 0]; ')
 
