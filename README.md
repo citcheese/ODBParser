@@ -78,5 +78,12 @@ Some features:
 * Default output of MongoDB is CSV and default for ES is JSON. You can convert ES files to CSV on the fly or you can run script after you dump ES instance to only convert files you care about to JSON. Whatever you want.
 * If you already have JSON files that you have dumped from other sources, you can convert them to CSV with the script
 
+<b>Installation and Reqs</b>
+* Clone or download to machine
+* configure parameters in ODBconfig.py file
+* suggest creating virtual environment for scripts
+* install requirements from file
+* tested ONLY on Python 3.7 and Windows
+
 Next steps are to clean up code a bit more and multithread processes.
 At the moment the tool only works with Elastic and MongoDB, but have plans to expand in time.
