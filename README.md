@@ -81,9 +81,10 @@ Some features:
 <b>Installation and Reqs</b>
 * Clone or download to machine
 * configure parameters in ODBconfig.py file
-* suggest creating virtual environment for scripts
 * install requirements from file
-* tested ONLY on Python 3.7 and Windows
+
+I suggest creating virtual environment for scripts so have no issues with incorrect module versions.
+<b>Note:</b> Tested ONLY on Python 3.7 and on Windows
 
 Next steps are to clean up code a bit more and multithread processes.
 At the moment the tool only works with Elastic and MongoDB, but have plans to expand in time.
