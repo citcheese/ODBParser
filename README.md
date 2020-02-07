@@ -69,6 +69,7 @@ The minimum size database script will dump is 40 documents and max is <b>800000<
 * Script is pretty verbose, maybe too verbose, but I like seeing what's going on. Feel free to silence print statements if you don't care.
 * Default output of MongoDB is CSV and default for ES is JSON. You can convert ES files to CSV on the fly or you can run script after you dump ES instance to only convert files you care about to JSON. Whatever you want.
 * If you already have JSON files that you have dumped from other sources, you can convert them to CSV with the script
+* If script pulls back huge number of indices that have field you care about, script will list names of the dbs, pause and give you ten seconds to decide whether you want to go ahead and pull all the data from every index as I've found if you get too many databases returned, there is a good chance data is fake or useless logs and you can usually tell from name whether it's just bunch of dbs with fake sample data. If you don't act within 10 seconds, script will go ahead and dump every index.
 
 <b>Installation and Reqs</b>
 * Clone or download to machine
