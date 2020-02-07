@@ -89,9 +89,11 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
+
     if len(sys.argv[1:])==0:
         parser.print_help()
         sys.exit()
+
     if not any([args.ip,args.shodanquery,args.paste,args.convertES]):
         print(f"{Fore.RED}Error:{Fore.RESET}You need to specify whether want to run Shodan query, a single IP, or paste from clipbard.")
         sys.exit()
