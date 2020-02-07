@@ -48,8 +48,7 @@ optional arguments:
 
  ```
 
-Wrote this as wanted to create one-stop shop for searching for, parsing and analyzing open databases in order to get the data I care about. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
-Other tools seem to either only query open databases or dump them once you've identified them. This tool is one-stop shop for querying and dumping.
+Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to get the data I care about as damn is there a lot of junk being hosted out there. Other tools seem to either only query open databases or dump them once you've identified them. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
 
 In terms of identifying databases you can:
 * query Shodan using all possible paramters (filter by country, port number, whatever)
