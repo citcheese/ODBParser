@@ -1,50 +1,65 @@
 # ODBgrabber
 ![](odbdemo2.gif)
 ```
-ODBgrabber - Query open databases and grab only the data you care about!
+    ODBgrabber - Query open databases and grab only the data you care about!
 
     Examples: python ODBgrabber.py -cn US -p 8080 -t users --elastic --shodanquery --csv --limit 100
               python ODBgrabber.py -ip 192.168.2:8080 --mongo --ignorelogs --nosizelimits
     _____________________________________________________________________________
 
-usage: odbgrabber.py [-h] [--ip] [--index] [--shodanquery] [--limit] [--port]
-                     [--country] [--terms] [--paste] [--mongo] [--elastic]
-                     [--ignorelogs] [--nosizelimits] [--csv] [--convertES]
+
+usage: odbgrabber.py [-h] [--ip] [--index] [--paste] [--shodanquery] [--limit]
+                     [--port] [--country] [--terms] [--mongo] [--elastic]
+                     [--ignorelogs] [--nosizelimits] [--csv] [--convertToCSV]
                      [--dontflatten] [--basic]
 
 optional arguments:
-  -h, --help         show this help message and exit
-  --ip, -ip         Query one server. Add port, e.g.'192.165.2.1:8080', or will assume default
-                     ports for each db type, e.g. 9200 for ES. Add ES or MDB flags to specify parser.
-  --index, -i       You know exactly what ES index you want? Go for it. Use
-                     this with IP arg and don't forget to add '--elastic' flag
-  --shodanquery      Add this flag if using Shodan and also specify whether
-                     want ES or MDB w/ flags.
-  --limit, -l       Specify max number of Shodan results per query. Default is 1000.
-  --port, -p        Specify if want to filter by port in Shodan query.
-  --country, -cn    Specify country filter in Shodan query with two-letter country code.
-  --terms, -t       Enter any additional Shodan query terms you want here,
-                     e.g. users or maybe add additional filters?
-  --paste            Query DBs hosted on line-separated IPs from
-                     clipboard. Add port otherwise will assume default ports
-                     for each db type, e.g. 9200 for ES. Add ES or MDB flags
-                     to specify parser.
-  --mongo            Use for IP, Shodan and Paste methods to specify parser.
-  --elastic          Use for IP, Shodan and Paste methods to specify parser.
-  --ignorelogs       add this flag to connect to a server you've already checked out.
-  --nosizelimits     Add if you want to dump index no matter how big it
-                     is. Careful! Current max doc count is set to 800,000.
-  --csv              Add this flag if want to convert JSON dumps from ES into
-                     CSV format on the fly. Would NOT use in
-                     conjunction with nosizelimit flag as may kill your memory
-  --convertES , -c   Convert JSON file or folder of JSON dumps to CSVs
-                     after the fact. Enter full path or folder name in current
-                     working directory
-  --dontflatten      Add this flag if run into memory issues converting JSON
-                     files to CSV during post-processing.
-  --basic            Add this flag with CSV flag if your JSON dumps are just
-                     line separated full records that you got from other
-                     sources.
+  -h, --help            show this help message and exit
+
+Specify IP Options:
+  --ip , -ip            Query one server. Add port, e.g. '192.165.2.1:8080',
+                        or will assume default ports for each db type, e.g.
+                        9200 for ES. Add ES or MDB flags to specify parser.
+
+  --index , -i          You know exactly what ES index you want? Go for it.
+                        Use this with IP arg and don't forget to add '--
+                        elastic' flag
+  --paste               Query DBs hosted on line-separated IPs from clipboard.
+                        Add port otherwise will assume default ports for each
+                        db type, e.g. 9200 for ES. Add ES or MDB flags to
+                        specify parser.
+
+Shodan Options:
+  --shodanquery         Add this flag if using Shodan. Specify ES or MDB w/
+                        flags.
+  --limit , -l          Max number of results per query. Default is
+                        1000.
+  --port , -p           Filter by port.
+  --country , -cn       Filter by country with two-letter country code.
+  --terms , -t          Enter any additional query terms you want here, e.g.
+                        'users'' or maybe add additional filters?
+
+Dump Options:
+  --mongo               Use for IP, Shodan and Paste methods to specify
+                        parser.
+  --elastic             Use for IP, Shodan and Paste methods to specify
+                        parser.
+  --ignorelogs          Connect to a server you've already checked out.
+  --nosizelimits        Dump index no matter how big it is. Default max doc
+                        count is 800,000.
+  --csv                 Convert JSON dumps into CSV format on the fly. (Puts
+                        JSON files in backup folder in case there is issue
+                        with coversion)
+
+Post-processing:
+  --convertToCSV , -c   Convert JSON file or folder of JSON dumps to CSVs
+                        after the fact. Enter full path or folder name in
+                        current working directory
+  --dontflatten         Use if run into memory issues converting JSON files to
+                        CSV during post-processing.
+  --basic               Use with CSV flag if your JSON dumps are just line
+                        separated full records that you got from other
+                        sources.
 
  ```
 
@@ -67,7 +82,7 @@ The minimum size database script will dump is 40 documents and max is <b>800000<
 * As you may have noticed, lot of people have been scanning for MongoDB databases and holding them hostage, often changing name to something like "TO_RESTORE_EMAIL_XXXRESTORE.COM." My MongoDb scraper will ignore all databases and collections that have been pwned by checking name of DB/collection against list of strings that indicate pwnage (check it in mongodbscraper function if want to add your own terms)
 * ignore index names that are generally used for basic logging, e.g. index names with ".kibana" in them. These are coded within functions, so if want to change these, will need to dig into code
 * Script is pretty verbose, maybe too verbose, but I like seeing what's going on. Feel free to silence print statements if you don't care.
-* Default output is JSON. You can convert the files to CSV on the fly or you can run script after you dump ES instance to only convert files you care about to JSON. Whatever you want. <b>NOTE:</b> When converting to CSV, script drops exact duplicate rows and drops rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather gave exact copy. 
+* Default output is JSON. You can convert the files to CSV on the fly or you can run script after you dump ES instance to only convert files you care about to JSON. Whatever you want. <b>NOTE:</b> When converting to CSV, script drops exact duplicate rows, drop scolumns and rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather gave exact copy. 
 * If you already have JSON files that you have dumped from other sources, you can convert them to CSV with the script
 * If script pulls back huge number of indices that have field you care about, script will list names of the dbs, pause and give you ten seconds to decide whether you want to go ahead and pull all the data from every index as I've found if you get too many databases returned, there is a good chance data is fake or useless logs and you can usually tell from name whether it's just bunch of dbs with fake sample data. If you don't act within 10 seconds, script will go ahead and dump every index.
 
