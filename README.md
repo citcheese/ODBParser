@@ -5,7 +5,6 @@
               python ODBgrabber.py -ip 192.168.2:8080 --mongo --ignorelogs --nosizelimits
     _____________________________________________________________________________
 
-
 usage: odbgrabber.py [-h] [--ip] [--index] [--paste] [--shodanquery] [--limit]
                      [--port] [--country] [--terms] [--mongo] [--elastic]
                      [--ignorelogs] [--nosizelimits] [--csv] [--convertToCSV]
@@ -14,7 +13,7 @@ usage: odbgrabber.py [-h] [--ip] [--index] [--paste] [--shodanquery] [--limit]
 optional arguments:
   -h, --help            show this help message and exit
 
-<b>Specify IP Options</b>
+Specify IP Options
   --ip , -ip            Query one server. Add port, e.g. '192.165.2.1:8080',
                         or will assume default ports for each db type, e.g.
                         9200 for ES. Add ES or MDB flags to specify parser.
@@ -27,7 +26,7 @@ optional arguments:
                         db type, e.g. 9200 for ES. Add ES or MDB flags to
                         specify parser.
 
-<b>Shodan Options</b>
+Shodan Options
   --shodanquery         Add this flag if using Shodan. Specify ES or MDB w/
                         flags.
   --limit , -l          Max number of results per query. Default is
@@ -37,7 +36,7 @@ optional arguments:
   --terms , -t          Enter any additional query terms you want here, e.g.
                         'users'' or maybe add additional filters?
 
-<b>Dump Options</b>
+Dump Options
   --mongo               Use for IP, Shodan and Paste methods to specify
                         parser.
   --elastic             Use for IP, Shodan and Paste methods to specify
@@ -49,7 +48,7 @@ optional arguments:
                         JSON files in backup folder in case there is issue
                         with coversion)
 
-<b>Post-processing</b>
+Post-processing<
   --convertToCSV , -c   Convert JSON file or folder of JSON dumps to CSVs
                         after the fact. Enter full path or folder name in
                         current working directory
@@ -58,9 +57,7 @@ optional arguments:
   --basic               Use with CSV flag if your JSON dumps are just line
                         separated full records that you got from other
                         sources.
-
  ```
-
 Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to get the data I care about as damn is there a lot of junk being hosted out there. Other tools seem to either only query open databases or dump them once you've identified them. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
 
 In terms of identifying databases you can:
