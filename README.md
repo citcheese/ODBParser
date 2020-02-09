@@ -1,8 +1,6 @@
 # ODBgrabber
 ![](odbdemo2.gif)
 ```
-    ODBgrabber - Query open databases and grab only the data you care about!
-
     Examples: python ODBgrabber.py -cn US -p 8080 -t users --elastic --shodanquery --csv --limit 100
               python ODBgrabber.py -ip 192.168.2:8080 --mongo --ignorelogs --nosizelimits
     _____________________________________________________________________________
@@ -16,7 +14,7 @@ usage: odbgrabber.py [-h] [--ip] [--index] [--paste] [--shodanquery] [--limit]
 optional arguments:
   -h, --help            show this help message and exit
 
-Specify IP Options:
+<b>Specify IP Options</b>
   --ip , -ip            Query one server. Add port, e.g. '192.165.2.1:8080',
                         or will assume default ports for each db type, e.g.
                         9200 for ES. Add ES or MDB flags to specify parser.
@@ -29,7 +27,7 @@ Specify IP Options:
                         db type, e.g. 9200 for ES. Add ES or MDB flags to
                         specify parser.
 
-Shodan Options:
+<b>Shodan Options</b>
   --shodanquery         Add this flag if using Shodan. Specify ES or MDB w/
                         flags.
   --limit , -l          Max number of results per query. Default is
@@ -39,7 +37,7 @@ Shodan Options:
   --terms , -t          Enter any additional query terms you want here, e.g.
                         'users'' or maybe add additional filters?
 
-Dump Options:
+<b>Dump Options</b>
   --mongo               Use for IP, Shodan and Paste methods to specify
                         parser.
   --elastic             Use for IP, Shodan and Paste methods to specify
@@ -51,7 +49,7 @@ Dump Options:
                         JSON files in backup folder in case there is issue
                         with coversion)
 
-Post-processing:
+<b>Post-processing</b>
   --convertToCSV , -c   Convert JSON file or folder of JSON dumps to CSVs
                         after the fact. Enter full path or folder name in
                         current working directory
