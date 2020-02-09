@@ -5,11 +5,6 @@
               python ODBgrabber.py -ip 192.168.2:8080 --mongo --ignorelogs --nosizelimits
     _____________________________________________________________________________
 
-usage: odbgrabber.py [-h] [--ip] [--index] [--paste] [--shodanquery] [--limit]
-                     [--port] [--country] [--terms] [--mongo] [--elastic]
-                     [--ignorelogs] [--nosizelimits] [--csv] [--convertToCSV]
-                     [--dontflatten] [--basic]
-
 optional arguments:
   -h, --help            show this help message and exit
 
