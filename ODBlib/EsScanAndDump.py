@@ -2,14 +2,13 @@
 
 import ODBlib.ESindexdump as ESindexdump
 from elasticsearch import Elasticsearch,exceptions
-import json
 import os
 import pandas as pd
 import ODBconfig
-from tqdm import tqdm
 from colorama import Fore
 import traceback
-
+import datetime
+from ODBlib.ODBhelperfuncs import convertjsondumptocsv, iterate_all, jsonappendfile, updatestatsfile
 
 pd.set_option('display.max_colwidth', -1)
 #pd.options.display.width = 0
@@ -31,34 +30,6 @@ if not basepath:
 if not os.path.exists(basepath):
     os.makedirs(basepath)
 
-def iterate_all(iterable, returned="key"):
-    """Returns an iterator that returns all keys or values
-       of a (nested) iterable.
-
-       Arguments:
-           - iterable: <list> or <dictionary>
-           - returned: <string> "key" or "value"
-
-       Returns:
-           - <iterator>
-    """
-
-    if isinstance(iterable, dict):
-        for key, value in iterable.items():
-            if returned == "key":
-                yield key
-            elif returned == "value":
-                if not (isinstance(value, dict) or isinstance(value, list)):
-                    yield value
-            else:
-                raise ValueError("'returned' keyword only accepts 'key' or 'value'.")
-            for ret in iterate_all(value, returned=returned):
-                yield ret
-    elif isinstance(iterable, list):
-        for el in iterable:
-            for ret in iterate_all(el, returned=returned):
-                yield ret
-
 
 def identifyindices(ipaddress,keywordlist=[],typelist=[],ignorelogfile=False,portnumber=9200): #filter indices to ones we care about
     import pandas as pd
@@ -75,13 +46,13 @@ def identifyindices(ipaddress,keywordlist=[],typelist=[],ignorelogfile=False,por
 
     else:
         doneips = []
-        oldjson = []
+        #oldjson = []
     pd.set_option('display.max_colwidth', -1)
     doneips = doneips+oldips
     if ignorelogfile:
         doneips=[]
     if ipaddress in doneips:
-        print(F"\033[92mAlready parsed\x1b[0m ES instance at: {ipaddress}. {Fore.RED}Leave the poor server alone!{Fore.RESET}")
+        print(F"\033[92mAlready parsed\x1b[0m ES instance at: {ipaddress}. {Fore.LIGHTRED_EX}Leave the poor server alone!{Fore.RESET}\n")
         pass
 
     else:
@@ -101,9 +72,10 @@ def identifyindices(ipaddress,keywordlist=[],typelist=[],ignorelogfile=False,por
             all.append(item)
             for x in indexstats:
                 indexName = x['index']
-                indicesdontwant=[".monitoring",".watcher-history","beat-",".kibana","_sample_data","apm-"] #ignore indices that are prob just logs, feel free to add more items to this list. or delete some. whatever
+                indicesdontwant=["beat-","_sample_data","apm-","metrics__","charts__"] #ignore indices that are prob just logs, feel free to add more items to this list. or delete some. whatever
 
-                if not any(x in indexName for x in indicesdontwant) :#avoid monitoring instances
+
+                if not any(x in indexName for x in indicesdontwant) and not indexName.startswith("."):#avoid system indices and ones that usually have BS logging
 
                     if x['docs.count']: #check to see if docs.count is not None
                         if int(x['docs.count']) > 100: #only worry about indices with more than 100 documents
@@ -121,7 +93,7 @@ def identifyindices(ipaddress,keywordlist=[],typelist=[],ignorelogfile=False,por
                                     elif keywordlist:  # but if for whatever reason want to just look at indices with certain names, we can do below
                                         if any(y in x['index'].lower() for y in
                                                keywordlist):  # check if kw in indexname
-                                            onestocheck.append(F"{x['index']}??|??{x['docs.count']}")
+                                            onestocheck.append(F"{x['index']}??|??{x['docs.count']:,d}")
                             else: #if dont care about names of index do this. Need to clean this up but good for now
                                 mapping=es.indices.get_mapping(index=indexName) #get all fields in index
                                 keyfields = set(list(iterate_all(mapping))) #iterate through nested json and pull all fields
@@ -137,10 +109,10 @@ def identifyindices(ipaddress,keywordlist=[],typelist=[],ignorelogfile=False,por
             ok = "\n        "+"\n        ".join(ok)
             print(F"    Found \033[91m{str(len(onestocheck))}\x1b[0m indices that have fields that match your desired fields: {ok}")
 
-            newjson = oldjson+all #
-
-            with open(os.path.join(basepath,"ElasticFound.json"), 'w') as outfile:
-                outfile.write(json.dumps(newjson))
+            #newjson = oldjson+all #
+            jsonappendfile(os.path.join(basepath,"ElasticFound.json"),all)
+            #with open(os.path.join(basepath,"ElasticFound.json"), 'w') as outfile:
+             #   outfile.write(json.dumps(newjson))
         except exceptions.ConnectionError:
             print(f"    {Fore.LIGHTGREEN_EX}Bummer{Fore.RESET}, connection to {Fore.LIGHTRED_EX}{ipaddress} {Fore.RESET}timed out after {Fore.LIGHTBLUE_EX}3{Fore.RESET} tries.")
         except Exception as e:
@@ -172,56 +144,6 @@ def identifyindices(ipaddress,keywordlist=[],typelist=[],ignorelogfile=False,por
 
         return onestocheck
 
-def convertjsondumptocsv(jsonfile,flattennestedjson=False,olddumps=False):
-    import pathlib
-    from pandas.io.json import json_normalize
-    import numpy as np
-    p = pathlib.Path(jsonfile)
-    foldername = p.parent.name
-    if not os.path.exists(os.path.join(p.parent,"JSON_backups")):
-        os.makedirs(os.path.join(p.parent,"JSON_backups"))
-    try:
-        if olddumps:#use this to convert generic ES dumps where entire record is on each line
-            with open(jsonfile) as f:
-                content = f.readlines()
-            con2 = [json.loads(x) for x in content]
-
-            con2 =[x["_source"] for x in con2 if x['_source']] #get rid of empty values
-            outfile = os.path.join(p.parent,f"{foldername}_{p.parts[-1].replace('.json','.csv')}")
-        else:
-            with open(jsonfile) as f:
-                con2 = json.load(f)
-            outfile = jsonfile.replace('.json','.csv')
-        if flattennestedjson:
-            try:
-                df = json_normalize(con2,errors="ignore")
-            except Exception as e:
-                print("    Error flattening JSON. It's an issue with Pandas. Not going to flatten, but I'm sure will be ok")
-                df = pd.DataFrame(con2)
-        else:
-            df = pd.DataFrame(con2)
-        df.dropna(axis=1, how='all',inplace=True)
-        df.replace(np.nan, '', regex=True,inplace=True)
-        df = df.applymap(str)
-        df.drop_duplicates(keep=False, inplace=True)
-        df = df.replace({'\n': '<br>',"\r":"<br>"}, regex=True)
-        df.to_csv(outfile,index=False,escapechar='\n') #ignore newline character inside strings
-        os.rename(jsonfile,os.path.join(p.parent,"JSON_backups",p.name)) #move json file to jsonbackups folder to keep things tidy
-    except Exception as e:
-        print(f"{jsonfile}: {str(e)}")
-
-def jsonfoldert0mergedcsv(folder,flattennestedjson=False,olddumps=False):
-    files = [x for x in os.listdir(folder) if x.endswith(".json") and "_mapping.json" not in x]
-    t = tqdm(files,desc="Now Converting",leave=True)
-    for x in t:
-        t.set_description(F"Now Converting: {Fore.LIGHTRED_EX}{x}{Fore.RESET}")
-        t.refresh()
-        convertjsondumptocsv(os.path.join(folder,x),flattennestedjson=flattennestedjson,olddumps=olddumps)
-
-def megajsonconvert(directory,flattennestedjson=False,olddumps=False):
-    for folder in os.listdir(directory):
-        if os.path.isdir(os.path.join(directory,folder)):
-            jsonfoldert0mergedcsv(os.path.join(directory,folder),flattennestedjson=flattennestedjson,olddumps=olddumps)
 
 def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconvert=False,index=""):
     print(F"Starting scan of ES instance at \033[94m{ipaddress}:{str(portnumber)}\x1b[0m")
@@ -246,23 +168,29 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
             indexName,docCount = x.split("??|??")
             if Icareaboutsize:
                 if int(docCount)>800000:
-                    print(F"\n    {Fore.LIGHTRED_EX}{indexName}{Fore.RESET} has \033[94m{int(docCount):,d}\x1b[0m docs! Added info to {Fore.CYAN}'Elastictoobig.csv'{Fore.RESET}. Set 'nosizelimit'' flag, if you want it")
+                    print(F"\n    {Fore.LIGHTRED_EX}{indexName}{Fore.RESET} has \033[94m{int(docCount):,d}\x1b[0m docs! Added info to {Fore.CYAN}'Elastictoobig.json'{Fore.RESET}. Set 'nosizelimit' flag, if you want it")
                     try:
                         es = Elasticsearch([{'host': ipaddress, 'port': portnumber, "timeout": 1, "requestTimeout": 2,
                                              'retry_on_timeout': True, 'max_retries': 3}])
 
-                        results = es.search(index=indexName, scroll="1m", size=10)
-                        sample='"'+str(results['hits']['hits'][-1]['_source'])+'"'
+                        results = es.search(index=indexName, scroll="1m", size=5)
+                        sample= [x["_source"] for x in results['hits']['hits']]
                     except:
-                        sample="Error getting sample record"
-                    toobig.append(F"{ipaddress}:{str(portnumber)},{indexName},{str(docCount)} documents,{sample}")
+                        sample=["Error getting sample record"]
+                    item = {}
+                    item['server'] = f"{ipaddress}:{portnumber}"
+                    item["index"] = indexName
+                    item["date_checked"] = str(datetime.datetime.now())
+                    item["docCount"] = docCount
+                    item["SampleItems"] = sample
+                    toobig.append(item)
+
                 else:
                     try:
                         ESindexdump.newESdump(ipaddress,indexName,os.path.join(basepath, ipaddress),portnumber=portnumber)
 
                         count += int(docCount)
                         done.append(indexName)
-                    #except ConnectionTimeout
                     except Exception as e:
                         fullError = traceback.format_exc()
 
@@ -288,37 +216,17 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
                     print(f"{Fore.LIGHTGREEN_EX}        Converted{Fore.RESET} dump to CSV for you...")
 
         if toobig:
-            with open(os.path.join(basepath,"Elastictoobig.csv"),'a',encoding="utf8",errors="replace") as fd:
-                for z in toobig:
-                    fd.write(z+"\n")
+            jsonappendfile(os.path.join(basepath,"Elastictoobig.json"),toobig)
         if index:
             count1 = "whatever it says above"
         else:
             count1= f"{count:,d}"
-        print(F"\nSuccesfully dumped \033[94m{str(len(done))}\x1b[0m databases with a total of \033[94m{count1}\x1b[0m records. You're welcome.")
+        print(F"\n{Fore.LIGHTGREEN_EX}Server Summary:{Fore.RESET} Succesfully dumped \033[94m{str(len(done))}\x1b[0m databases with a total of \033[94m{count1}\x1b[0m records.\n")
     else:
        pass
     print(f'{Fore.RED}#############################################\n{Fore.RESET}')
     return (len(done),count)
 
-def ipsfromclipboard():
-    import pyperclip
-    ips = pyperclip.paste().splitlines()
-    ips = list(filter(None,ips))
-    ips = [x for x in ips if x[0].isdigit()]
-    return ips
-
-def pastefromwebui(): #old function
-    ips = ipsfromclipboard()
-    donedbs = 0
-    totalrecords=0
-    for x in ips:
-        donecount,recordcount = main(x)
-        donedbs+=donecount
-        totalrecords+=recordcount
-
-    print('###########-----\033[91mFull Run Summary\x1b[0m-----################\n')
-    print(F"      Succesfully dumped \033[94m{str(donedbs)}\x1b[0m databases with a total of \033[94m{totalrecords:,d}\x1b[0m records. \n            YOU ARE WELCOME.")
 
 def singleclustergrab(ipaddress,portnumber=9200,careaboutsize=True,ignorelogs=False,convertTOcsv=False,index=""):
     donedbs = 0
@@ -327,6 +235,7 @@ def singleclustergrab(ipaddress,portnumber=9200,careaboutsize=True,ignorelogs=Fa
     donecount, recordcount = main(ipaddress,portnumber=portnumber,Icareaboutsize=careaboutsize,ignorelogs=ignorelogs,csvconvert=convertTOcsv,index=index)
     donedbs += donecount
     totalrecords += recordcount
+    updatestatsfile(donedbs, totalrecords, 1)
 
     if not index:
         print('###########-----\033[91mCluster Summary\x1b[0m-----################\n')
@@ -335,8 +244,6 @@ def singleclustergrab(ipaddress,portnumber=9200,careaboutsize=True,ignorelogs=Fa
 
 if __name__ == '__main__':
     import argparse
-    import warnings
-    import sys
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", '-ip', help="grab one IP")
@@ -348,8 +255,4 @@ if __name__ == '__main__':
         ip = args.ip
         ip = ip.strip("/https//:")
         singleclustergrab(ip)
-    elif len(sys.argv[1:]) == 0:
-        pastefromwebui()
-        #parser.print_help()
-        # parser.print_usage() # for just the usage line
-        #parser.exit()
+

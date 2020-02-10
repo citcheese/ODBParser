@@ -20,9 +20,9 @@ def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000):
         os.makedirs(out_dir)
     os.chdir(out_dir)
     es = Elasticsearch([{'host': ipaddress, 'port': portnumber, "timeout": 12, "requestTimeout": 20,'retry_on_timeout':True,'max_retries':3}]) #decrease timeout if you like, but good to have up there esp for really big files and if scroll size is at 10000
-    dump_fname = f'{indexname}_mapping.json'
+    dump_fname = f'{ipaddress}_{indexname}_ES_mapping.json'
     # print(F'Dumping index \033[94m{index_name}\x1b[0m in file at \033[94m{dump_fname}\x1b[0m')
-    ESversion = int(es.info()["version"]["number"].rsplit(".")[0])
+    #ESversion = int(es.info()["version"]["number"].rsplit(".")[0])
     index_info = es.indices.get(indexname) #get mapping
     #print(f"        Got mapping for {Fore.LIGHTRED_EX}{indexname}{Fore.RESET}")
     with open(os.path.join(out_dir,dump_fname), 'w') as dump_fd:
@@ -49,7 +49,7 @@ def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000):
         with open(os.path.join(out_dir, f"{ipaddress}_{indexname}_ES.json"), "w") as f:
             json.dump(hits,f)
         if scroll_size < totalhits:#was getting scroll error when trying to get hits on page 2 if no page 2, so fuck it wrote this condition
-            while (scroll_size > 0):
+            while scroll_size > 0:
                 try:
                     hits=[] #reset hits
                     count +=1
