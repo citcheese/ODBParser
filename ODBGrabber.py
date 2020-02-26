@@ -2,13 +2,16 @@ import ODBlib.mongoscraper as mongoscraper
 import ODBlib.EsScanAndDump as EsScanAndDump
 from colorama import Fore
 import os
-from ODBlib.ODBhelperfuncs import shodan_query,ipsfromclipboard,jsonfoldert0mergedcsv,valid_ip,ipsfromfile,printsummary,updatestatsfile,getstats
+from ODBlib.ODBhelperfuncs import shodan_query,ipsfromclipboard,jsonfoldert0mergedcsv,valid_ip,ipsfromfile,printsummary,getstats
 
 
 """
 To do:
 1. multithread
-2. single collection dump for MongoDB
+2. alt method for ES instances that don't allow scrolling or fix issue
+3. 
+4.add counter for dbs within server
+
 """
 
 if __name__ == '__main__':
@@ -37,23 +40,21 @@ if __name__ == '__main__':
     ODBgrabber - Query open databases and grab only the data you care about!
     {Fore.RED}Examples:{Fore.RESET} python ODBgrabber.py -cn US -p 8080 -t users --elastic --shodan --csv --limit 100
               python ODBgrabber.py -ip 192.168.2:8080 --mongo --ignorelogs --nosizelimits
-    {Fore.RED}\n    Damage to-date: {Fore.LIGHTBLUE_EX}{parsed:,d}{Fore.RESET} servers parsed; {Fore.LIGHTBLUE_EX}{donedbs:,d}{Fore.RESET} databases dumped; {Fore.LIGHTBLUE_EX}{totalrecs:,d}{Fore.RESET} records pulled.
+    {Fore.RED}\n    Damage to-date: {Fore.LIGHTBLUE_EX}{parsed:,d}{Fore.RESET} servers parsed {Fore.RED}|{Fore.RESET} {Fore.LIGHTBLUE_EX}{donedbs:,d}{Fore.RESET} databases dumped {Fore.RED}|{Fore.RESET} {Fore.LIGHTBLUE_EX}{totalrecs:,d}{Fore.RESET} records pulled
     {Fore.CYAN}_____________________________________________________________________________{Fore.RESET}
     """
     print(description+"\n")
 
     parser = argparse.ArgumentParser(usage=argparse.SUPPRESS)#formatter_class=BlankLinesHelpFormatter
-    group3 = parser.add_argument_group(f'{Fore.CYAN}Specify IP Options{Fore.RESET}')
+    group3 = parser.add_argument_group(f'{Fore.CYAN}Query Options{Fore.RESET}')
 
-    group3.add_argument("--ip", '-ip', help=f"Query one server. Add port, e.g. '192.165.2.1:8080', or will assume default ports for each db type, e.g. 9200 for ES. Add ES or MDB flags to specify parser. ",metavar="")
-    group3.add_argument("--index","-i",help=f"Specify index (ES ONLY). Use with IP arg & 'elastic' flag",metavar="")
-    group3.add_argument("--file","-f",help=f"Load line-separated IPs from file. Add port or will assume default ports for each db type, e.g. 9200 for ES. Add ES or MDB flags to specify parser.",metavar="")
-    group3.add_argument("--paste",action='store_true',help=f"Query line-separated IPs from clipboard. Add port or will assume default ports for each db type, e.g. 9200 for ES. Add ES or MDB flags to specify parser.")
-
+    group3.add_argument("--shodan","-s",action='store_true',help='Add this flag if using Shodan. Specify ES or MDB w/ flags.')
+    group3.add_argument("--ip", '-ip', help=f"Query one server. Add port like so '192.165.2.1:8080' or will use default ports for each db type. Add ES or MDB flags to specify parser. ",metavar="")
+    group3.add_argument("--file","-f",help=f"Load line-separated IPs from file. Add port or will assume default ports for each db type. Add ES or MDB flags to specify parser.",metavar="")
+    group3.add_argument("--paste","-v",action='store_true',help=f"Query line-separated IPs from clipboard. Add port or will assume default ports for each db type, e.g. 9200 for ES. Add ES or MDB flags to specify parser.")
 
     group2 = parser.add_argument_group(f'{Fore.CYAN}Shodan Options{Fore.RESET}')
 
-    group2.add_argument("--shodan",action='store_true',help='Add this flag if using Shodan. Specify ES or MDB w/ flags.')
     group2.add_argument("--limit","-l",help=f"Max number of results per query. Default is {Fore.LIGHTBLUE_EX}1000.{Fore.RESET}",metavar="")
     group2.add_argument("--port","-p",help=f"Filter by port.",metavar="")
     group2.add_argument("--country","-cn",help=f"Filter by country with two-letter country code.",metavar="")
@@ -61,10 +62,15 @@ if __name__ == '__main__':
 
     group1 = parser.add_argument_group(f'{Fore.CYAN}Dump Options{Fore.RESET}')
 
-    group1.add_argument("--mongo",action='store_true',help="Use for IP, Shodan & Paste methods to specify parser.")
-    group1.add_argument("--elastic",action='store_true',help=f"Use for IP, Shodan & Paste methods to specify parser.")
+    group1.add_argument("--index","-i",help=f"Specify index (ES ONLY). Use with IP arg & 'elastic' flag",metavar="")
+    group1.add_argument("--collection","-co",help=f"Specify collection (MDB ONLY). In format 'db:collection'. Use with IP arg & 'mongo' flag",metavar="")
+
+    group1.add_argument("--getall","-g",action='store_true',help=f"Get all indices regardless of fields and collection/index names (overrides selections in config file).")
+
+    group1.add_argument("--mongo","-m",action='store_true',help="Use for IP, Shodan & Paste methods to specify parser.")
+    group1.add_argument("--elastic","-e",action='store_true',help=f"Use for IP, Shodan & Paste methods to specify parser.")
     group1.add_argument("--ignorelogs", action='store_true', help=f"Connect to a server you've already checked out.")
-    group1.add_argument("--nosizelimits",action='store_false',help=f"Dump index no matter how big it is. Default max doc count is {Fore.LIGHTBLUE_EX}800,000.{Fore.RESET}")
+    group1.add_argument("--nosizelimits","-n",action='store_false',help=f"Dump index no matter how big it is. Default max doc count is {Fore.LIGHTBLUE_EX}800,000.{Fore.RESET}")
     group1.add_argument("--csv",action='store_true',help=f"Convert JSON dumps into CSV format on the fly. (Puts JSON files in backup folder in case there is issue with coversion)")
 
     group = parser.add_argument_group(f'{Fore.CYAN}Post-processing{Fore.RESET}')
@@ -78,11 +84,17 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit()
 
+    items = ([args.shodan,args.paste, args.ip, args.file])
+    if len([x for x in items if x and x is not None]) > 1:
+        print(f"{Fore.RED}Error: {Fore.RESET}Can't pick more than one method at once!")
+        sys.exit()
+
     if not any([args.ip,args.shodan,args.paste,args.convertToCSV,args.file]):
         print(f"{Fore.RED}Error:{Fore.RESET}You need to specify whether want to run Shodan query, a single IP, get IPS from file, or paste from clipbard.")
         sys.exit()
     careboutsize = args.nosizelimits
     ignorelogs = args.ignorelogs
+
 
     if args.convertToCSV:
         if ".json" in args.convertToCSV: #check if file or folder of json files
@@ -102,13 +114,20 @@ if __name__ == '__main__':
                 folder = os.path.join(os.getcwd(), args.convertToCSV)
             jsonfoldert0mergedcsv(folder,flattennestedjson=args.dontflatten,olddumps=args.basic)
     else:
+        if args.getall:
+            GETALL = True
+            careboutsize = False
+        else:
+            GETALL = False
         if not args.elastic and not args.mongo:
-            print(F"You need to specify {Fore.RED}--elastic or --mongo {Fore.RESET} for IP, Shodan and Paste methods so I know what parser to use.")
+            print(F"You need to specify {Fore.RED}--elastic{Fore.RESET} or {Fore.RED}--mongo {Fore.RESET} for IP, Shodan and Paste methods so I know what parser to use.")
             sys.exit()
         if args.ip:
             port=""
             ip = args.ip
             ip = ip.strip("/https//:")
+
+
             if valid_ip(ip):
                 if ":" in ip:#check if specify port
                     ip,port = ip.split(":")
@@ -117,17 +136,34 @@ if __name__ == '__main__':
                     indexname=args.index
                 else:
                     indexname=""
+                if args.collection:
+                    collection = args.collection
+                    if len(collection.split(":")) !=2:
+                        print(f"{Fore.RED}Error:{Fore.RESET} Need to specify collection in 'DBname:CollectionName' format")
+                        sys.exit()
+                else:
+                    collection = ""
                 if args.elastic:
                     if port:
-                        EsScanAndDump.singleclustergrab(ip,portnumber=port,careaboutsize=careboutsize,ignorelogs=ignorelogs,convertTOcsv=args.csv,index=indexname)
+                        donecount, recordcount = EsScanAndDump.main(ip, portnumber=port, Icareaboutsize=careboutsize,
+                                                      ignorelogs=ignorelogs, csvconvert=args.csv, index=indexname,getall=GETALL)
+
+                        #EsScanAndDump.singleclustergrab(ip,portnumber=port,careaboutsize=careboutsize,ignorelogs=ignorelogs,convertTOcsv=args.csv,index=indexname,typelist=typelist)
                     else:
-                        EsScanAndDump.singleclustergrab(ip,careaboutsize=careboutsize,ignorelogs=ignorelogs,convertTOcsv=args.csv,index=indexname)
+                        donecount, recordcount = EsScanAndDump.main(ip, Icareaboutsize=careboutsize,
+                                                                    ignorelogs=ignorelogs, csvconvert=args.csv,
+                                                                    index=indexname, getall=GETALL)
+                        #EsScanAndDump.singleclustergrab(ip,careaboutsize=careboutsize,ignorelogs=ignorelogs,convertTOcsv=args.csv,index=indexname,typelist=typelist)
                     #print("es")
+                    if not indexname:
+                        print('###########-----\033[91mCluster Summary\x1b[0m-----################\n')
+                        print(F"  Succesfully dumped \033[94m{str(donecount)}\x1b[0m databases with a total of \033[94m{recordcount:,d}\x1b[0m records. \n            YOU ARE WELCOME.")
+
                 elif args.mongo:
                     if port:
-                        mongoscraper.mongodbscraper(ip,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv)
+                        mongoscraper.mongodbscraper(ip,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,getcollection=collection)
                     else:
-                        mongoscraper.mongodbscraper(ip,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv)
+                        mongoscraper.mongodbscraper(ip,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,getcollection=collection)
             else:
                 print(f"{Fore.RED}Error:{Fore.RESET} {ip} does not appear to be a valid IP address")
                 sys.exit()
@@ -157,20 +193,20 @@ if __name__ == '__main__':
                     if not port:
                         port = 9200
                     #print(port)
-                    donecount, recordcount = EsScanAndDump.main(ip,portnumber=port,ignorelogs=ignorelogs,csvconvert=args.csv,Icareaboutsize=careboutsize)
+                    donecount, recordcount = EsScanAndDump.main(ip,portnumber=port,ignorelogs=ignorelogs,csvconvert=args.csv,Icareaboutsize=careboutsize,getall=GETALL)
                     donedbs += donecount
                     totalrecords += recordcount
                     TYPE="Elasticsearch"
                 elif args.mongo:
                     if not port:
                         port = 27017
-                    donecount, recordcount = mongoscraper.mongodbscraper(ip, portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize)
+                    donecount, recordcount = mongoscraper.mongodbscraper(ip, portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL)
                     donedbs += donecount
                     totalrecords += recordcount
                     TYPE = "MongoDB"
             #summ = [f"{Fore.RED}RUN SUMMARY{Fore.CYAN}",F"{Fore.RESET}Dumped {Fore.LIGHTBLUE_EX}{str(donedbs)}{Fore.RESET} databases with a total of {Fore.LIGHTBLUE_EX}{totalrecords:,d}{Fore.RESET} records.{Fore.CYAN}",f"{Fore.RESET}{Fore.RED}Have a nice day!{Fore.CYAN}"]
             printsummary(donedbs,totalrecords)
-            updatestatsfile(donedbs, totalrecords, len(ips),type=TYPE)
+            #updatestatsfile(donedbs, totalrecords, len(ips),type=TYPE)
 
             #print(F'\n{Fore.CYAN}##############-----RUN SUMMARY----##############{Fore.RESET}\n')
             #print(F"    Dumped {Fore.LIGHTBLUE_EX}{str(donedbs)}{Fore.RESET} databases w/ a total of \033[94m{totalrecords:,d}\x1b[0m records.")
@@ -183,13 +219,16 @@ if __name__ == '__main__':
                     limit = args.limit
                 else:
                     limit = 100
+                other = ""
 
                 if args.elastic:
                     PRODUCT = "elastic"
                     TYPE = "ElasticSearch"
+                    #other = ' all:"elastic indices”'
                 elif args.mongo:
                     PRODUCT="mongodb"
                     TYPE = "MongoDB"
+                    other = " all:'mongodb server information' all:'metrics'" #make sure only getting open dbs that dont req auth
                 addterms =""
                 country=""
                 shodanport=""
@@ -199,13 +238,13 @@ if __name__ == '__main__':
                     shodanport = f' port:{args.port}'
                 if args.terms:
                     addterms = f" {args.terms}"
-                QUERY = f'product:{PRODUCT}{shodanport}{country}{addterms}'
+                QUERY = f'product:{PRODUCT}{shodanport}{country}{other}{addterms}'
                 print(f"Your Shodan Query: {Fore.CYAN}'{QUERY}'{Fore.RESET} with max results of {Fore.LIGHTBLUE_EX}{limit}{Fore.RESET}")
                 #sys.exit()
                 listres = shodan_query(query=QUERY,limit=limit)
                 totalshodanres = str(len(listres))
                 if len(listres) ==0:
-                    print(f"{Fore.RED}\nNo results{Fore.RESET}. Shodan server either overloaded or actually no results.")
+                    print(f"{Fore.RED}\nNo results{Fore.RESET}. Shodan server either overloaded or actually no results (server doesn't specify, which is annoying).")
                 else:
                     print(f"Found {Fore.CYAN}{str(totalshodanres)}{Fore.RESET} results!")
                 donedbs = 0
@@ -216,14 +255,14 @@ if __name__ == '__main__':
                     print(f"{Fore.LIGHTBLUE_EX}{counts}{Fore.RESET}/{totalshodanres}")
                     ipaddress,product,port = x
                     if product.lower() =="elastic":
-                        donecount, recordcount = EsScanAndDump.main(ipaddress,portnumber=port,csvconvert=args.csv,ignorelogs=ignorelogs,Icareaboutsize=careboutsize)
+                        donecount, recordcount = EsScanAndDump.main(ipaddress,portnumber=port,csvconvert=args.csv,ignorelogs=ignorelogs,Icareaboutsize=careboutsize,getall=GETALL)
                         donedbs += donecount
                         totalrecords += recordcount
 
                     elif product.lower() =="mongodb":
-                        donecount, recordcount = mongoscraper.mongodbscraper(ipaddress,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize)
+                        donecount, recordcount = mongoscraper.mongodbscraper(ipaddress,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL)
                         donedbs += donecount
                         totalrecords += recordcount
                 printsummary(donedbs, totalrecords)
-                updatestatsfile(donedbs,totalrecords,len(listres),type=TYPE)
+                #updatestatsfile(donedbs,totalrecords,len(listres),type=TYPE)
 
