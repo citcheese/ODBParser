@@ -148,16 +148,10 @@ if __name__ == '__main__':
                         donecount, recordcount = EsScanAndDump.main(ip, portnumber=port, Icareaboutsize=careboutsize,
                                                       ignorelogs=ignorelogs, csvconvert=args.csv, index=indexname,getall=GETALL)
 
-                        #EsScanAndDump.singleclustergrab(ip,portnumber=port,careaboutsize=careboutsize,ignorelogs=ignorelogs,convertTOcsv=args.csv,index=indexname,typelist=typelist)
                     else:
                         donecount, recordcount = EsScanAndDump.main(ip, Icareaboutsize=careboutsize,
                                                                     ignorelogs=ignorelogs, csvconvert=args.csv,
                                                                     index=indexname, getall=GETALL)
-                        #EsScanAndDump.singleclustergrab(ip,careaboutsize=careboutsize,ignorelogs=ignorelogs,convertTOcsv=args.csv,index=indexname,typelist=typelist)
-                    #print("es")
-                    if not indexname:
-                        print('###########-----\033[91mCluster Summary\x1b[0m-----################\n')
-                        print(F"  Succesfully dumped \033[94m{str(donecount)}\x1b[0m databases with a total of \033[94m{recordcount:,d}\x1b[0m records. \n            YOU ARE WELCOME.")
 
                 elif args.mongo:
                     if port:
