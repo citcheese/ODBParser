@@ -35,6 +35,8 @@ Shodan Options:
 Dump Options:
   --index , -i          Specify index (ES ONLY). Use with IP arg & 'elastic'
                         flag
+  --collection , -co    Specify collection (MDB ONLY). In format
+                        'db:collection'. Use with IP arg & 'mongo' flag
   --getall, -g          Get all indices regardless of fields and
                         collection/index names (overrides selections in config
                         file).
