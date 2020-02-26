@@ -6,10 +6,11 @@ from colorama import Fore
 
 def jsonappendfile(filepath,items):
     prevExists = True
-    if not os.path.exists(filepath):
+    if not os.path.exists(filepath) or os.path.getsize(filepath)==0:
         prevExists = False
         with open(filepath, "ab+") as f:
             f.write("[]".encode())
+
     with open(filepath, "ab+") as newZ:  # so dont have to store whole json in memory
         newZ.seek(-1, 2)
         newZ.truncate()
@@ -21,7 +22,40 @@ def jsonappendfile(filepath,items):
         newZ.write(json.dumps(items[-1]).encode())
         newZ.write(']'.encode())
 
-def convertjsondumptocsv(jsonfile,flattennestedjson=False,olddumps=False):
+def checkifIPalreadyparsed(ipaddress,dbtype="Elastic"): #types are Elastic or Mongo
+
+    import ODBconfig
+
+    basepath = ODBconfig.basepath
+    oldips = ODBconfig.oldips
+
+    if not basepath:
+        basepath = os.path.join(os.getcwd(), "open directory dumps")
+
+    if not os.path.exists(basepath):
+        os.makedirs(basepath)
+
+    if os.path.exists(os.path.join(basepath,f"{dbtype}Found.json")):
+        if os.path.getsize(os.path.join(basepath, f"{dbtype}Found.json")) != 0:
+            with open(os.path.join(basepath,f"{dbtype}Found.json")) as outfile:
+                oldjson = json.load(outfile)
+                doneips = [x['ipaddress'] for x in oldjson]  # check if already searched IP address
+        else:
+            doneips =[]
+
+    else:
+        doneips = []
+    pd.set_option('display.max_colwidth', -1)
+    doneips = doneips+oldips
+
+    if ipaddress in doneips:
+        return True
+    else:
+        return False
+        #print(F"{Fore.GREEN}Already parsed\x1b[0m ES instance at: {ipaddress}. {Fore.LIGHTRED_EX}Leave the poor server alone!{Fore.RESET}\n")
+        #pass
+
+def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False):
     import pathlib
     from pandas.io.json import json_normalize
     import numpy as np
@@ -44,11 +78,16 @@ def convertjsondumptocsv(jsonfile,flattennestedjson=False,olddumps=False):
             outfile = jsonfile.replace('.json','.csv')
         if flattennestedjson:
             try:
-                df = json_normalize(con2,errors="ignore")
-            except Exception as e:
-                #print("    Error flattening JSON. It's an issue with Pandas. Not going to flatten, but I'm sure will be ok")
-                df = pd.DataFrame(con2)
-                issuesflattening = True
+                dic_flattened = (flatten_json(d) for d in con2)
+                df = pd.DataFrame(dic_flattened)
+            except Exception:
+                try:
+                    df = json_normalize(con2, errors="ignore")
+
+                except Exception as e:
+                    df = pd.DataFrame(con2)
+                    issuesflattening = True
+
         else:
             df = pd.DataFrame(con2)
         df.dropna(axis=1, how='all',inplace=True)
@@ -133,7 +172,6 @@ def shodan_query(query,limit=1000):
     try:
         api = shodan.Shodan(ODBconfig.SHODAN_API_KEY)
         result = api.search_cursor(query)
-        #result = api.search(query, page=page)
         shodanres = []
         for x in result:
             shodanres.append((x["ip_str"],x["product"],x["port"])) #lets only grab these fields to lower memory overhead
@@ -187,10 +225,11 @@ def printsummary(donedbs,totalrecords):
     print(f'#{summ[0]:^{colwidth + 10}}#')
     print(f'#{summ[1]:^{colwidth + 30}}#')
     print(f'#{summ[2]:^{colwidth + 15}}#')
-    print('#' * border)
+    print(f"{'#' * border}{Fore.RESET}")
 
 def updatestatsfile(donedbs=0,totalrecords=0,parsedservers=0,type="ElasticSearch"):
-    fpath = os.path.join(os.getcwd(),"ODBlib","ODBstats.json")
+    absolute_path = os.path.dirname(os.path.abspath(__file__))
+    fpath = os.path.join(absolute_path,"ODBstats.json")
     if not os.path.exists(fpath):
         prevExists = False
         item = {}
@@ -205,7 +244,6 @@ def updatestatsfile(donedbs=0,totalrecords=0,parsedservers=0,type="ElasticSearch
         item["ElasticSearch"] = elastic
         item["MongoDB"] = mongo
 
-
         with open(fpath, "w") as f:
             json.dump(item,f)
     with open(fpath) as f:
@@ -217,8 +255,9 @@ def updatestatsfile(donedbs=0,totalrecords=0,parsedservers=0,type="ElasticSearch
         json.dump(con, f)
 
 def getstats():
-    #import pandas as pd
-    fpath = os.path.join(os.getcwd(),"ODBlib","ODBstats.json")
+    absolute_path = os.path.dirname(os.path.abspath(__file__))
+    fpath = os.path.join(absolute_path, "ODBstats.json")
+    #fpath = os.path.join("ODBlib","ODBstats.json")
     with open(fpath) as f:
         con = json.load(f)
     donedbs = 0
@@ -230,14 +269,36 @@ def getstats():
         donedbs += con[x]["databases dumped"]
     return parsed,totalrecs,donedbs
 
-    #print(f"{Fore.CYAN}ODB Stats{Fore.RESET}")
-    #for x in con:
-     #   print(f"{Fore.LIGHTRED_EX}{x}| \n{Fore.RESET}    " + '\n    '.join(
-      #      [f"{y}: {Fore.LIGHTBLUE_EX}{con[x][y]:,d}{Fore.RESET}" for y in con[x]]))
-    #df = pd.DataFrame(con)
-    #df = df.T
-    #for x in con:
-     #   print(f"\n{Fore.LIGHTRED_EX}{x}{Fore.RESET}")
-      #  for y in con[x]:
-       #     print(f"\t{y}: {Fore.LIGHTBLUE_EX}{con[x][y]:,d}{Fore.RESET}")
-    #print(df)
+
+def flatten_json(dictionary):
+    from itertools import chain, starmap
+    """Flatten a nested json file"""
+
+    def unpack(parent_key, parent_value):
+        """Unpack one level of nesting in json file"""
+        # Unpack one level only!!!
+
+        if isinstance(parent_value, dict):
+            for key, value in parent_value.items():
+                temp1 = parent_key + '_' + key
+                yield temp1, value
+        elif isinstance(parent_value, list):
+            i = 0
+            for value in parent_value:
+                temp2 = parent_key + '_' + str(i)
+                i += 1
+                yield temp2, value
+        else:
+            yield parent_key, parent_value
+
+            # Keep iterating until the termination condition is satisfied
+
+    while True:
+        # Keep unpacking the json file until all values are atomic elements (not dictionary or list)
+        dictionary = dict(chain.from_iterable(starmap(unpack, dictionary.items())))
+        # Terminate condition: not any value in the json file is dictionary or list
+        if not any(isinstance(value, dict) for value in dictionary.values()) and \
+                not any(isinstance(value, list) for value in dictionary.values()):
+            break
+
+    return dictionary

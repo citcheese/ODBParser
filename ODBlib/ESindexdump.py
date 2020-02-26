@@ -3,6 +3,8 @@ from elasticsearch import Elasticsearch, exceptions
 import json
 from colorama import Fore
 import ODBconfig
+from ODBlib.ODBhelperfuncs import updatestatsfile
+
 
 basepath = ODBconfig.basepath
 if not basepath:
@@ -19,7 +21,7 @@ def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     os.chdir(out_dir)
-    es = Elasticsearch([{'host': ipaddress, 'port': portnumber, "timeout": 12, "requestTimeout": 20,'retry_on_timeout':True,'max_retries':3}]) #decrease timeout if you like, but good to have up there esp for really big files and if scroll size is at 10000
+    es = Elasticsearch([{'host': ipaddress, 'port': portnumber, "timeout": 25, "requestTimeout": 20,'retry_on_timeout':True,'max_retries':5}]) #decrease timeout if you like, but good to have up there esp for really big files and if scroll size is at 10000
     dump_fname = f'{ipaddress}_{indexname}_ES_mapping.json'
     # print(F'Dumping index \033[94m{index_name}\x1b[0m in file at \033[94m{dump_fname}\x1b[0m')
     #ESversion = int(es.info()["version"]["number"].rsplit(".")[0])
@@ -48,6 +50,8 @@ def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000):
         filecount =0
         with open(os.path.join(out_dir, f"{ipaddress}_{indexname}_ES.json"), "w") as f:
             json.dump(hits,f)
+        updatestatsfile(1, len(hits), 1, type="ElasticSearch")
+
         if scroll_size < totalhits:#was getting scroll error when trying to get hits on page 2 if no page 2, so fuck it wrote this condition
             while scroll_size > 0:
                 try:
@@ -74,6 +78,8 @@ def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000):
                                 newZ.write(",".encode())
                             newZ.write(json.dumps(hits[-1]).encode())
                             newZ.write(']'.encode())
+                        updatestatsfile(0, len(hits), 0, type="ElasticSearch")
+
                 except Exception as e:
                     scroll_size = 0
                     with open(os.path.join(basepath, "EsErrors.txt"), 'a') as outfile:
@@ -84,7 +90,7 @@ def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000):
                         reason = "Scrolling not supported on this version of ES db with this version of Python client"
                     else:
                         reason=""
-                    print (F"        failed on page {str(count)}{reason} (check logs for more info)") #need to add extra error handling
+                    print (F"        failed on page {str(count)}: {reason} (check logs for more info)") #need to add extra error handling
                     #break
     except exceptions.ConnectionError:
         print(F"    Couldn't connect to {Fore.LIGHTRED_EX}{indexname}{Fore.RESET} after 3 tries")
