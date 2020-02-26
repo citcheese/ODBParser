@@ -217,12 +217,12 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                                             else:
                                                 item = {}
                                                 item['server'] = f"{dbip}:{portnumber}"
-                                                item["collection"] = y
-                                                item["database"] = x
+                                                item["collection"] = collection
+                                                item["database"] = db
                                                 item["date_checked"] = str(datetime.datetime.now())
-                                                item["docCount"] = client[x][y].estimated_document_count()
+                                                item["docCount"] = client[db][collection].estimated_document_count()
                                                 item["SampleItems"] = [json.dumps(x, default=json_util.default) for x in
-                                                                       client[x][y].find({}, {'_id': False}).limit(
+                                                                       client[db][collection].find({}, {'_id': False}).limit(
                                                                            5)]  # need to use json_util to deal w/ mongo datetime object serialization issues
                                                 toobig.append(item)
                                         else:
