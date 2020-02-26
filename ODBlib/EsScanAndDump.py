@@ -226,30 +226,5 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
     return (len(done),count)
 
 
-def singleclustergrab(ipaddress,portnumber=9200,careaboutsize=True,ignorelogs=False,convertTOcsv=False,index=""):
-    donedbs = 0
-    totalrecords = 0
 
-    donecount, recordcount = main(ipaddress,portnumber=portnumber,Icareaboutsize=careaboutsize,ignorelogs=ignorelogs,csvconvert=convertTOcsv,index=index)
-    donedbs += donecount
-    totalrecords += recordcount
-
-    if not index:
-        print('###########-----\033[91mCluster Summary\x1b[0m-----################\n')
-        print(F"Succesfully dumped \033[94m{str(donedbs)}\x1b[0m databases with a total of \033[94m{totalrecords:,d}\x1b[0m records. \n            YOU ARE WELCOME.")
-
-
-if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--ip", '-ip', help="grab one IP")
-    parser.add_argument("--ignore", '-i', action='store_true', help="add this flag to ignore ES log and rescrape server")
-
-    args = parser.parse_args()
-
-    if args.ip:
-        ip = args.ip
-        ip = ip.strip("/https//:")
-        singleclustergrab(ip)
 
