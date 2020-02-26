@@ -1,49 +1,53 @@
 # ODBgrabber
 ![](odbdemo2.gif)
 ```
-    Examples: python ODBgrabber.py -cn US -p 8080 -t users --elastic --shodanquery --csv --limit 100
+    Examples: python ODBgrabber.py -cn US -p 8080 -t users --elastic --shodan --csv --limit 100
               python ODBgrabber.py -ip 192.168.2:8080 --mongo --ignorelogs --nosizelimits
+
+    Damage to-date: 0 servers parsed | 0 databases dumped | 0 records pulled
     _____________________________________________________________________________
+
 
 optional arguments:
   -h, --help            show this help message and exit
 
-Specify IP Options
-  --ip , -ip            Query one server. Add port, e.g. '192.165.2.1:8080',
-                        or will assume default ports for each db type, e.g.
-                        9200 for ES. Add ES or MDB flags to specify parser.
-
-  --index , -i          You know exactly what ES index you want? Go for it.
-                        Use this with IP arg and don't forget to add '--
-                        elastic' flag
-  --paste               Query DBs hosted on line-separated IPs from clipboard.
-                        Add port otherwise will assume default ports for each
-                        db type, e.g. 9200 for ES. Add ES or MDB flags to
-                        specify parser.
-
-Shodan Options
-  --shodanquery         Add this flag if using Shodan. Specify ES or MDB w/
+Query Options:
+  --shodan, -s          Add this flag if using Shodan. Specify ES or MDB w/
                         flags.
+  --ip , -ip            Query one server. Add port like so '192.165.2.1:8080'
+                        or will use default ports for each db type. Add ES or
+                        MDB flags to specify parser.
+  --file , -f           Load line-separated IPs from file. Add port or will
+                        assume default ports for each db type. Add ES or MDB
+                        flags to specify parser.
+  --paste, -v           Query line-separated IPs from clipboard. Add port or
+                        will assume default ports for each db type, e.g. 9200
+                        for ES. Add ES or MDB flags to specify parser.
+
+Shodan Options:
   --limit , -l          Max number of results per query. Default is
                         1000.
   --port , -p           Filter by port.
   --country , -cn       Filter by country with two-letter country code.
   --terms , -t          Enter any additional query terms you want here, e.g.
-                        'users'' or maybe add additional filters?
+                        'users' or maybe add additional filters?
 
-Dump Options
-  --mongo               Use for IP, Shodan and Paste methods to specify
-                        parser.
-  --elastic             Use for IP, Shodan and Paste methods to specify
-                        parser.
+Dump Options:
+  --index , -i          Specify index (ES ONLY). Use with IP arg & 'elastic'
+                        flag
+  --getall, -g          Get all indices regardless of fields and
+                        collection/index names (overrides selections in config
+                        file).
+  --mongo, -m           Use for IP, Shodan & Paste methods to specify parser.
+  --elastic, -e         Use for IP, Shodan & Paste methods to specify parser.
   --ignorelogs          Connect to a server you've already checked out.
-  --nosizelimits        Dump index no matter how big it is. Default max doc
+  --nosizelimits, -n    Dump index no matter how big it is. Default max doc
                         count is 800,000.
   --csv                 Convert JSON dumps into CSV format on the fly. (Puts
                         JSON files in backup folder in case there is issue
                         with coversion)
 
-Post-processing
+Post-processing:
   --convertToCSV , -c   Convert JSON file or folder of JSON dumps to CSVs
                         after the fact. Enter full path or folder name in
                         current working directory
@@ -58,23 +62,28 @@ Wrote this as wanted to create one-stop OSINT tool for searching, parsing and an
 In terms of identifying databases you can:
 * query Shodan using all possible paramters (filter by country, port number, whatever)
 * specify single database or single database and index
+* load up file that has list of IP addresses
 * paste from list of IP addresses you have
 
 This will also keep track of all the IP addresses and databases you have queried and will check to make sure you haven't already queried the IP. But if you want to connect to server you have already connected to, you have that option.
 
 See the odbconfig.py file to specify your parameters, because really name of the game is getting data YOU care about. I provided some examples in the config file. Play around with them!
 
-The minimum size database script will dump is 40 documents and max is <b>800000</b>, but you can set flag to grab database with unlimited number of documents if you like. Just be careful. If you don't set "nolimit" flag, script will create file with indices/collections that were too big along with a couple sample entries from the index so you can take a look and see if want to grab them later.
+The minimum size database script will dump is 40 documents and max is <b>800000</b>, but you can set flag to grab database with unlimited number of documents if you like. Just be careful. If you don't set "nolimit" flag, script will create file with indices/collections that were too big along with a couple 5 entries from the index so you can take a look and see if want to grab them later.
 
-<b>Some features/Notes:</b>
+<b>Customization:</b>
 * specify what index or collection names you want to collect by specifying substrings in config file. For example, if have the term "client", script will pull index called "clients" or "client_data." I recommend you keep these lists blank as you never know what databases you care about will be called and instead specify the fields you care about.
 * specify what fields you care about: if you only want to grab ES indicdes that have  "email" in a field name, e.g."user_emails", you can do that. If you want to make sure the index has at least 2 fields you care about, you can do that too. Or if you just want to grab everything no matter what fields are in there, you can do that too.
-* As you may have noticed, lot of people have been scanning for MongoDB databases and holding them hostage, often changing name to something like "TO_RESTORE_EMAIL_XXXRESTORE.COM." My MongoDb scraper will ignore all databases and collections that have been pwned by checking name of DB/collection against list of strings that indicate pwnage (check it in mongodbscraper function if want to add your own terms)
-* ignore system index names and others that are generally used for basic logging, e.g. index names with ".kibana" in them. These are coded within functions, so if want to change these, will need to dig into code
+* specify what indices you DON'T want e.g., system index names and others that are generally used for basic logging. Examples provided in config file.
+* override config and grab everything on a server
+
+<b>Other Features/Notes:</b>
 * Script is pretty verbose (maybe too verbose) but I like seeing what's going on. Feel free to silence print statements if you don't care.
-* All output is JSON. You can convert the files to CSV on the fly or you can run script after you dump ES instance to only convert files you care about to JSON. Whatever you want. If you convert on fly, script will move JSON files to folder called "JSON backups" in same directory.<b>NOTE:</b> When converting to CSV, script drops exact duplicate rows and drops columns and rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather have exact copy of JSON file. 
+* All output is JSON. You can convert the files to CSV on the fly or you can run script after you dump ES instance to only convert files you care about to JSON. Whatever you want. If you convert on fly, script will move JSON files to folder called "JSON backups" in same directory.<b>NOTE:</b> When converting to CSV, script drops exact duplicate rows and drops columns and rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather have exact copy of JSON file.
 * If you already have JSON files that you have dumped from other sources, you can convert them to CSV with the script. Again, script will move JSON files to a backup folder.
 * If script pulls back huge number of indices that have field you care about, script will list names of the dbs, pause and give you ten seconds to decide whether you want to go ahead and pull all the data from every index as I've found if you get too many databases returned even after you've specified fields you want, there is a good chance data is fake or useless logs and you can usually tell from name whether either possibility is the case. If you don't act within 10 seconds, script will go ahead and dump every index.
+* As you may have noticed, lot of people have been scanning for MongoDB databases and holding them hostage, often changing name to something like "TO_RESTORE_EMAIL_XXXRESTORE.COM." My MongoDb scraper will ignore all databases and collections that have been pwned by checking name of DB/collection against list of strings that indicate pwnage (check it in mongodbscraper function if want to add your own terms)
+* keeps track of number of databases and total number of records you've dumped
 
 <b>Installation and Reqs</b>
 * Clone or download to machine
@@ -84,5 +93,14 @@ The minimum size database script will dump is 40 documents and max is <b>800000<
 I suggest creating virtual environment for scripts so have no issues with incorrect module versions.
 <b>Note:</b> Tested ONLY on Python 3.7.3 and on Windows 10. Probably works on all versions of Python 3 and don't think there is any Windows-specific code, but haven't tested to confirm.
 
-Next steps are to clean up code a bit more and multithread various processes.
-Also, at the moment the tool only works with Elastic and MongoDB, but have plans to expand to other dbs.
+PLEASE USE RESPONSIBLY
+
+Next steps:
+* clean up code a bit more
+* multithread various processes.
+* expand to other db types
+* add other open directory search engines (zoomeye, etc.)
+
+Known Issues
+* unable to scroll past first page for certain ES instances due to way ES <2.0 works. Appreciate any help!
+
