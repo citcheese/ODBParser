@@ -4,6 +4,7 @@ import json
 from colorama import Fore
 import ODBconfig
 from ODBlib.ODBhelperfuncs import updatestatsfile
+from elasticsearch1 import Elasticsearch as es1
 
 
 basepath = ODBconfig.basepath
@@ -24,7 +25,12 @@ def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000):
     es = Elasticsearch([{'host': ipaddress, 'port': portnumber, "timeout": 25, "requestTimeout": 20,'retry_on_timeout':True,'max_retries':5}]) #decrease timeout if you like, but good to have up there esp for really big files and if scroll size is at 10000
     dump_fname = f'{ipaddress}_{indexname}_ES_mapping.json'
     # print(F'Dumping index \033[94m{index_name}\x1b[0m in file at \033[94m{dump_fname}\x1b[0m')
-    #ESversion = int(es.info()["version"]["number"].rsplit(".")[0])
+    ESversion = int(es.info()["version"]["number"].rsplit(".")[0]) #check version
+    if ESversion <2: #check if less than v2 when scrolling changed
+        es = es1([{'host': ipaddress, 'port': portnumber, "timeout": 25, "requestTimeout": 20,
+                             'retry_on_timeout': True,
+                             'max_retries': 5}])  # decrease timeout if you like, but good to have up there esp for really big files and if scroll size is at 10000
+
     index_info = es.indices.get(indexname) #get mapping
     #print(f"        Got mapping for {Fore.LIGHTRED_EX}{indexname}{Fore.RESET}")
     with open(os.path.join(out_dir,dump_fname), 'w') as dump_fd:
