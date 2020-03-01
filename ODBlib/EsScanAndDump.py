@@ -40,14 +40,14 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
     onestocheck=[]
 
     es = Elasticsearch([{'host': ipaddress, 'port': portnumber,"timeout":10,"requestTimeout":2,'retry_on_timeout':True,'max_retries':2}])
+    print(str(typelist))
     x=""
     try:
         indexstats = es.cat.indices(format="json")
         print(f"{Fore.GREEN}Connection made{Fore.RESET}, now grabbing indices...")
         df = pd.DataFrame.from_dict(indexstats)
         indextotal = df[df['docs.count'].notnull()]['docs.count'].astype(int).sum()
-        print (f"    Found\033[94m {str(len(indexstats))}\x1b[0m indices with total of \033[94m{indextotal:,d}\x1b[0m documents")
-
+        orig = len(indexstats)
         all = []
         item ={}
         item['ipaddress']= ipaddress
@@ -55,40 +55,44 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
         item["indices"]=indexstats #lets add keys here
         all.append(item)
 
+        indexstats =[x for x in indexstats if not any(y in x["index"] for y in indicesdontwant) and not x["index"].startswith(".")] #ignore system indices and ones that usually have BS logging
+        print (f"    Found\033[94m {orig:,d}\x1b[0m indices with total of \033[94m{indextotal:,d}\x1b[0m documents (ignoring {Fore.LIGHTBLUE_EX}{orig - len(indexstats)}{Fore.RESET} of them as per configfile)")
+
         t = tqdm(indexstats, leave=True)
         t.refresh()
         for x in t:
             indexName = x['index']
-            t.set_description_str(F"    Parsing {Fore.CYAN}{indexName}{Fore.RESET} { ' ' * (35-len(indexName))}:")
+            if len(indexName)>29:
+                spacing = 30
+            else:
+                spacing = len(indexName)
+            t.set_description_str(F"        Parsing {Fore.CYAN}{indexName[:30]}{Fore.RESET} { ' ' * (31-spacing)}")
             mapping = es.indices.get_mapping(index=indexName)  # get all fields in index
             keyfields = set(
                 list(iterate_all(mapping)))  # iterate through nested json and pull all fields
             keyfields = [z.lower() for z in keyfields]
             x["db_fields"] = keyfields #add fields to server dict which will get written to file
+            if x['docs.count']: #check to see if docs.count is not None
+                if int(x['docs.count']) > 50: #only worry about indices with more than 100 documents
 
-            if not any(x in indexName for x in indicesdontwant) and not indexName.startswith("."):#avoid system indices and ones that usually have BS logging
+                    if indicesIwant: #check if there is list of index names I want to filter to
+                        if any(z in indexName for z in indicesIwant):
 
-                if x['docs.count']: #check to see if docs.count is not None
-                    if int(x['docs.count']) > 800000: #only worry about indices with more than 100 documents
-                                               
-                        if indicesIwant: #check if there is list of index names I want to filter to
-                            if any(z in indexName for z in indicesIwant):
-
-                                if typelist:  # usually want to just go through indices and look for interesting fields
-                                    if len([x for x in keyfields if any(y in x for y in typelist)])>=numfieldsreq:  # look for fields like phone, email etc and then if find them add that index to list, only if two or more fields are present. or to swap logic [x for x in typelist if any(x in y for y in keyfields)]
-                                        if "test" not in x["index"]:  # forget about indice that are tests
-                                            onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
-                                else:
-                                    onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
-                        else: #if dont care about names of index do this. Need to clean this up but good for now
-
-                            if typelist: #usually want to just go through indices and look for interesting fields
-                                if len([x for x in keyfields if any(y in x for y in typelist)])>=numfieldsreq: #look for fields like phone, email etc and then if find them add that index to list
-                                    if "test" not in x["index"]: #forget about indice that are tests
+                            if typelist:  # usually want to just go through indices and look for interesting fields
+                                if len([x for x in keyfields if any(y in x for y in typelist)])>=numfieldsreq:  # look for fields like phone, email etc and then if find them add that index to list, only if two or more fields are present. or to swap logic [x for x in typelist if any(x in y for y in keyfields)]
+                                    if "test" not in x["index"]:  # forget about indice that are tests
                                         onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
                             else:
                                 onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
+                    else: #if dont care about names of index do this. Need to clean this up but good for now
 
+                        if typelist: #usually want to just go through indices and look for interesting fields
+                            if len([x for x in keyfields if any(y in x for y in typelist)])>=numfieldsreq: #look for fields like phone, email etc and then if find them add that index to list
+                                if "test" not in x["index"]: #forget about indice that are tests
+                                    onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
+                        else:
+                            onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
+        t.close()
         ok = [x.replace("??|??"," | ") for x in onestocheck]
         ok = "\n        "+"\n        ".join(ok)
         print(F"    Found \033[91m{str(len(onestocheck))}\x1b[0m indices that have fields that match your desired fields: {ok}")
@@ -102,7 +106,7 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
 
         with open(os.path.join(basepath, "EsErrors.txt"), 'a') as outfile:
             outfile.write(f"\n{ipaddress}:{str(fullError)}\n---------------------------------------------------------\n")
-        print(F"Issue with {Fore.RED}{x}{Fore.RED} (check logs for more info)")
+        print(F"Issue with {Fore.RED}{indexName}{Fore.RESET} (check logs for more info)")
     if len(onestocheck)>20: #added this as sometimes got list back of obviously bad dbs but cant create rule for everythign otherwise will rule out good dbs
         timeout = 10
         startTime = time.time()
@@ -160,13 +164,13 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
             try:
                 print(F"Starting scan of ES instance at \033[94m{ipaddress}:{str(portnumber)}\x1b[0m")
 
-                indicestodump = identifyindices(ipaddress,portnumber=portnumber,typelist=typelist)
+                indicestodump = identifyindices(ipaddress,portnumber=portnumber)
             except Exception as e:
                 fullError = traceback.format_exc()
 
                 with open(os.path.join(basepath, "EsErrors.txt"), 'a') as outfile:
                     outfile.write(f"{ipaddress}:{str(fullError)}\n---------------------------------------------------------\n")
-                print(f"{ipaddress} {Fore.RED}had an issue (check logs for more info){Fore.RESET}")
+                print(f"    {ipaddress} {Fore.RED}had an issue (check logs for more info){Fore.RESET}")
     toobig = []
     count = 0
     indexcount = 0
@@ -194,7 +198,7 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
             if toobig:
                 jsonappendfile(os.path.join(basepath, "Elastictoobig.json"), toobig)
                 ok = [x.replace("??|??", " | ") for x in bigones]
-                ok = "        " + "\n        ".join(ok)
+                ok = "      " + "\n        ".join(ok)
                 print(F"    The following indices {Fore.LIGHTGREEN_EX}are too big{Fore.RESET}. Adding info to {Fore.CYAN}'Elastictoobig.json'{Fore.RESET}(Set 'nosizelimit' flag, if you want them): {ok}")
 
             indicestodump = [x for x in indicestodump if x not in bigones]
