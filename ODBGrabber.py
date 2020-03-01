@@ -35,7 +35,7 @@ if __name__ == '__main__':
          \___/ |___/  \____/  \____/|_|    \__,_||_.__/ |_.__/  \___||_|   
                            
                            {Fore.RESET}by:{Fore.CYAN} Matteo Tomasini (citcheese) {Fore.RESET}
-                                    Version: {Fore.CYAN}0.3{Fore.RESET}                                      
+                                    Version: {Fore.CYAN}0.6{Fore.RESET}                                      
     
     ODBgrabber - Query open databases and grab only the data you care about!
     {Fore.RED}Examples:{Fore.RESET} python ODBgrabber.py -cn US -p 8080 -t users --elastic --shodan --csv --limit 100
@@ -67,8 +67,8 @@ if __name__ == '__main__':
 
     group1.add_argument("--getall","-g",action='store_true',help=f"Get all indices regardless of fields and collection/index names (overrides selections in config file).")
 
-    group1.add_argument("--mongo","-m",action='store_true',help="Use for IP, Shodan & Paste methods to specify parser.")
-    group1.add_argument("--elastic","-e",action='store_true',help=f"Use for IP, Shodan & Paste methods to specify parser.")
+    group1.add_argument("--mongo","-mdb",action='store_true',help="Use for IP, Shodan & Paste methods to specify parser.")
+    group1.add_argument("--elastic","-es",action='store_true',help=f"Use for IP, Shodan & Paste methods to specify parser.")
     group1.add_argument("--ignorelogs", action='store_true', help=f"Connect to a server you've already checked out.")
     group1.add_argument("--nosizelimits","-n",action='store_false',help=f"Dump index no matter how big it is. Default max doc count is {Fore.LIGHTBLUE_EX}800,000.{Fore.RESET}")
     group1.add_argument("--csv",action='store_true',help=f"Convert JSON dumps into CSV format on the fly. (Puts JSON files in backup folder in case there is issue with coversion)")
