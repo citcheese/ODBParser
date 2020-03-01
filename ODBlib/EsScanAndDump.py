@@ -9,12 +9,13 @@ from colorama import Fore
 import traceback
 import datetime
 from ODBlib.ODBhelperfuncs import convertjsondumptocsv, iterate_all, jsonappendfile,checkifIPalreadyparsed
+from tqdm import tqdm
 
 pd.set_option('display.max_colwidth', -1)
 #pd.options.display.width = 0
 """
 To do:
-1. 
+1. add code for es1 scroll
 3. mulithread
 """
 
@@ -31,7 +32,7 @@ if not os.path.exists(basepath):
     os.makedirs(basepath)
 
 
-def identifyindices(ipaddress,typelist=[],portnumber=9200,indicesIwant=indicesIwant): #filter indices to ones we care about
+def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filter indices to ones we care about
     import pandas as pd
     import datetime
     import os
@@ -51,33 +52,42 @@ def identifyindices(ipaddress,typelist=[],portnumber=9200,indicesIwant=indicesIw
         item ={}
         item['ipaddress']= ipaddress
         item["time_check"]=str(datetime.datetime.now())
-        item["indices"]=indexstats
+        item["indices"]=indexstats #lets add keys here
         all.append(item)
-        for x in indexstats: #maybe add progress bar here like did for MDB
+
+        t = tqdm(indexstats, leave=True)
+        t.refresh()
+        for x in t:
             indexName = x['index']
+            t.set_description_str(F"    Parsing {Fore.CYAN}{indexName}{Fore.RESET} { ' ' * (35-len(indexName))}:")
+            mapping = es.indices.get_mapping(index=indexName)  # get all fields in index
+            keyfields = set(
+                list(iterate_all(mapping)))  # iterate through nested json and pull all fields
+            keyfields = [z.lower() for z in keyfields]
+            x["db_fields"] = keyfields #add fields to server dict which will get written to file
+
             if not any(x in indexName for x in indicesdontwant) and not indexName.startswith("."):#avoid system indices and ones that usually have BS logging
 
                 if x['docs.count']: #check to see if docs.count is not None
-                    if int(x['docs.count']) > 20: #only worry about indices with more than 100 documents
+                    if int(x['docs.count']) > 800000: #only worry about indices with more than 100 documents
+                                               
                         if indicesIwant: #check if there is list of index names I want to filter to
                             if any(z in indexName for z in indicesIwant):
-                                mapping = es.indices.get_mapping(index=indexName)  # get all fields in index
-                                keyfields = set(
-                                    list(iterate_all(mapping)))  # iterate through nested json and pull all fields
-                                keyfields = [z.lower() for z in keyfields]
+
                                 if typelist:  # usually want to just go through indices and look for interesting fields
-                                    if len([x for x in keyfields if any(y in x for y in typelist)])>=numfieldsreq:  # look for fields like phone, email etc and then if find them add that index to list, only if two or more fields are present
+                                    if len([x for x in keyfields if any(y in x for y in typelist)])>=numfieldsreq:  # look for fields like phone, email etc and then if find them add that index to list, only if two or more fields are present. or to swap logic [x for x in typelist if any(x in y for y in keyfields)]
                                         if "test" not in x["index"]:  # forget about indice that are tests
                                             onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
-
+                                else:
+                                    onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
                         else: #if dont care about names of index do this. Need to clean this up but good for now
-                            mapping=es.indices.get_mapping(index=indexName) #get all fields in index
-                            keyfields = set(list(iterate_all(mapping))) #iterate through nested json and pull all fields
-                            keyfields = [z.lower() for z in keyfields]
+
                             if typelist: #usually want to just go through indices and look for interesting fields
                                 if len([x for x in keyfields if any(y in x for y in typelist)])>=numfieldsreq: #look for fields like phone, email etc and then if find them add that index to list
                                     if "test" not in x["index"]: #forget about indice that are tests
                                         onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
+                            else:
+                                onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
 
         ok = [x.replace("??|??"," | ") for x in onestocheck]
         ok = "\n        "+"\n        ".join(ok)
@@ -161,62 +171,58 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
     count = 0
     indexcount = 0
     if indicestodump:
+        if Icareaboutsize:
+            bigones = [x for x in indicestodump if int(x.split("??|??",1)[1].replace(',', ''))>150] #started changing method to get all sample recrs for toobig and dump right away just in case errors later on
+            for z in bigones:
+                indexName, docCount = z.split("??|??")
+                docCount = int(docCount.replace(',', ''))
+                try:
+                    es = Elasticsearch([{'host': ipaddress, 'port': portnumber, "timeout": 1, "requestTimeout": 2,
+                                         'retry_on_timeout': True, 'max_retries': 3}])
+
+                    results = es.search(index=indexName, scroll="1m", size=5)
+                    sample = [x["_source"] for x in results['hits']['hits']]
+                except:
+                    sample = ["Error getting sample record"]
+                item = {}
+                item['server'] = f"{ipaddress}:{portnumber}"
+                item["index"] = indexName
+                item["date_checked"] = str(datetime.datetime.now())
+                item["docCount"] = docCount
+                item["SampleItems"] = sample
+                toobig.append(item)
+            if toobig:
+                jsonappendfile(os.path.join(basepath, "Elastictoobig.json"), toobig)
+                ok = [x.replace("??|??", " | ") for x in bigones]
+                ok = "        " + "\n        ".join(ok)
+                print(F"    The following indices {Fore.LIGHTGREEN_EX}are too big{Fore.RESET}. Adding info to {Fore.CYAN}'Elastictoobig.json'{Fore.RESET}(Set 'nosizelimit' flag, if you want them): {ok}")
+
+            indicestodump = [x for x in indicestodump if x not in bigones]
+
+
         for x in indicestodump:
             indexcount+=1
-            #print(f"    [{indexcount}/{len(indicestodump)}",end="\r")
             indexName,docCount = x.split("??|??")
             docCount = int(docCount.replace(',', ''))
-            if Icareaboutsize:
-                if int(docCount)>800000:
-                    print(F"    {Fore.LIGHTRED_EX}{indexName}{Fore.RESET} has \033[94m{int(docCount):,d}\x1b[0m docs! Added info to {Fore.CYAN}'Elastictoobig.json'{Fore.RESET}. Set 'nosizelimit' flag, if you want it")
-                    try:
-                        es = Elasticsearch([{'host': ipaddress, 'port': portnumber, "timeout": 1, "requestTimeout": 2,
-                                             'retry_on_timeout': True, 'max_retries': 3}])
 
-                        results = es.search(index=indexName, scroll="1m", size=5)
-                        sample= [x["_source"] for x in results['hits']['hits']]
-                    except:
-                        sample=["Error getting sample record"]
-                    item = {}
-                    item['server'] = f"{ipaddress}:{portnumber}"
-                    item["index"] = indexName
-                    item["date_checked"] = str(datetime.datetime.now())
-                    item["docCount"] = docCount
-                    item["SampleItems"] = sample
-                    toobig.append(item)
+            try:
+                ESindexdump.newESdump(ipaddress, indexName, os.path.join(basepath, ipaddress),
+                                      portnumber=portnumber)
 
-                else:
-                    try:
-                        ESindexdump.newESdump(ipaddress,indexName,os.path.join(basepath, ipaddress),portnumber=portnumber)
+                count+=int(docCount)
+                done.append(indexName)
+            except Exception as e:
+                fullError = traceback.format_exc()
 
-                        count += int(docCount)
-                        done.append(indexName)
-                    except Exception as e:
-                        fullError = traceback.format_exc()
-
-                        with open(os.path.join(basepath, "EsErrors.txt"), 'a') as outfile:
-                            outfile.write(f"{ipaddress}:{str(fullError)}\n---------------------------------------------------------\n")
-                        print(F"        {Fore.RED}Error{Fore.RESET} with {Fore.LIGHTRED_EX}{indexName}{Fore.RESET} had an issue (check logs for more info){Fore.RESET}")
-            else:
-                try:
-                    ESindexdump.newESdump(ipaddress, indexName, os.path.join(basepath, ipaddress),
-                                          portnumber=portnumber)
-
-                    count+=int(docCount)
-                    done.append(indexName)
-                except Exception as e:
-                    fullError = traceback.format_exc()
-
-                    with open(os.path.join(basepath, "EsErrors.txt"), 'a') as outfile:
-                        outfile.write(f"{ipaddress}:{str(fullError)}\n---------------------------------------------------------\n")
-                    print(F"{indexName} had an issue (check logs for more info)")
+                with open(os.path.join(basepath, "EsErrors.txt"), 'a') as outfile:
+                    outfile.write(f"{ipaddress}:{str(fullError)}\n---------------------------------------------------------\n")
+                print(F"{indexName} had an issue (check logs for more info)")
             if csvconvert: #ok so you want to convert json to csv, fine
                 if os.path.isfile(os.path.join(basepath,ipaddress,f"{ipaddress}_{indexName}_ES.json")): #check if the file exists first
                     convertjsondumptocsv(os.path.join(basepath,ipaddress,f"{ipaddress}_{indexName}_ES.json"))
                     print(f"{Fore.GREEN}        Converted{Fore.RESET} dump to CSV for you...")
 
-        if toobig:
-            jsonappendfile(os.path.join(basepath,"Elastictoobig.json"),toobig)
+
 
         print(F"\n{Fore.GREEN}Server Summary:{Fore.RESET} Succesfully dumped \033[94m{str(len(done))}\x1b[0m databases with a total of \033[94m{count:,d}\x1b[0m records.\n")
 
