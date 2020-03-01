@@ -40,7 +40,6 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
     onestocheck=[]
 
     es = Elasticsearch([{'host': ipaddress, 'port': portnumber,"timeout":10,"requestTimeout":2,'retry_on_timeout':True,'max_retries':2}])
-    print(str(typelist))
     x=""
     try:
         indexstats = es.cat.indices(format="json")
@@ -176,7 +175,7 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
     indexcount = 0
     if indicestodump:
         if Icareaboutsize:
-            bigones = [x for x in indicestodump if int(x.split("??|??",1)[1].replace(',', ''))>150] #started changing method to get all sample recrs for toobig and dump right away just in case errors later on
+            bigones = [x for x in indicestodump if int(x.split("??|??",1)[1].replace(',', ''))>800000] #started changing method to get all sample recrs for toobig and dump right away just in case errors later on
             for z in bigones:
                 indexName, docCount = z.split("??|??")
                 docCount = int(docCount.replace(',', ''))
