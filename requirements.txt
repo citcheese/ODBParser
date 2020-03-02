@@ -6,3 +6,4 @@ pyperclip==1.7.0
 shodan==1.13.0
 tqdm==4.36.1
 elasticsearch1==1.10.0
+ijson==2.6.1
