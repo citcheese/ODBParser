@@ -22,13 +22,16 @@ def jsonappendfile(filepath,items):
         newZ.write(json.dumps(items[-1]).encode())
         newZ.write(']'.encode())
 
-def checkifIPalreadyparsed(ipaddress,dbtype="Elastic"): #types are Elastic or Mongo
 
+def checkifIPalreadyparsed(ipaddress,dbtype="Elastic",multi=False): #types are Elastic or Mongo
     import ODBconfig
-
+    import ijson
+    dbtype = dbtype.title().strip("db")
     basepath = ODBconfig.basepath
     oldips = ODBconfig.oldips
 
+    if ":" in ipaddress:
+        ipaddress = ipaddress.split(":")[0]
     if not basepath:
         basepath = os.path.join(os.getcwd(), "open directory dumps")
 
@@ -38,22 +41,23 @@ def checkifIPalreadyparsed(ipaddress,dbtype="Elastic"): #types are Elastic or Mo
     if os.path.exists(os.path.join(basepath,f"{dbtype}Found.json")):
         if os.path.getsize(os.path.join(basepath, f"{dbtype}Found.json")) != 0:
             with open(os.path.join(basepath,f"{dbtype}Found.json")) as outfile:
-                oldjson = json.load(outfile)
-                doneips = [x['ipaddress'] for x in oldjson]  # check if already searched IP address
+                doneips = list(ijson.items(outfile, "item.ipaddress")) #inly load ipadrdess key into memory in case file gets crazy big
         else:
             doneips =[]
-
     else:
         doneips = []
     pd.set_option('display.max_colwidth', -1)
     doneips = doneips+oldips
 
-    if ipaddress in doneips:
-        return True
+    if multi:
+        parsedones = [x for x in ipaddress if x in doneips]
+        return parsedones
     else:
-        return False
-        #print(F"{Fore.GREEN}Already parsed\x1b[0m ES instance at: {ipaddress}. {Fore.LIGHTRED_EX}Leave the poor server alone!{Fore.RESET}\n")
-        #pass
+        if ipaddress in doneips:
+            return True
+        else:
+            return False
+
 
 def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False):
     import pathlib
@@ -78,7 +82,7 @@ def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False):
             outfile = jsonfile.replace('.json','.csv')
         if flattennestedjson:
             try:
-                dic_flattened = (flatten_json(d) for d in con2)
+                dic_flattened = [flatten_json(d) for d in con2]
                 df = pd.DataFrame(dic_flattened)
             except Exception:
                 try:

@@ -41,6 +41,7 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
 
     es = Elasticsearch([{'host': ipaddress, 'port': portnumber,"timeout":10,"requestTimeout":2,'retry_on_timeout':True,'max_retries':2}])
     x=""
+    indexName=ipaddress
     try:
         indexstats = es.cat.indices(format="json")
         print(f"{Fore.GREEN}Connection made{Fore.RESET}, now grabbing indices...")
@@ -50,6 +51,7 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
         all = []
         item ={}
         item['ipaddress']= ipaddress
+        item["port"]=portnumber
         item["time_check"]=str(datetime.datetime.now())
         item["indices"]=indexstats #lets add keys here
         all.append(item)
@@ -66,35 +68,45 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
             else:
                 spacing = len(indexName)
             t.set_description_str(F"        Parsing {Fore.CYAN}{indexName[:30]}{Fore.RESET} { ' ' * (31-spacing)}")
-            mapping = es.indices.get_mapping(index=indexName)  # get all fields in index
-            keyfields = set(
-                list(iterate_all(mapping)))  # iterate through nested json and pull all fields
-            keyfields = [z.lower() for z in keyfields]
-            x["db_fields"] = keyfields #add fields to server dict which will get written to file
-            if x['docs.count']: #check to see if docs.count is not None
-                if int(x['docs.count']) > 50: #only worry about indices with more than 100 documents
 
-                    if indicesIwant: #check if there is list of index names I want to filter to
-                        if any(z in indexName for z in indicesIwant):
+            try:
+                mapping = es.indices.get_mapping(index=indexName)  # get all fields in index
+                keyfields = set(
+                    list(iterate_all(mapping)))  # iterate through nested json and pull all fields
+                keyfields = [z.lower() for z in keyfields]
+                x["db_fields"] = keyfields #add fields to server dict which will get written to file
+                if x['docs.count']: #check to see if docs.count is not None
+                    if int(x['docs.count']) > 50: #only worry about indices with more than 100 documents
 
-                            if typelist:  # usually want to just go through indices and look for interesting fields
-                                if len([x for x in keyfields if any(y in x for y in typelist)])>=numfieldsreq:  # look for fields like phone, email etc and then if find them add that index to list, only if two or more fields are present. or to swap logic [x for x in typelist if any(x in y for y in keyfields)]
-                                    if "test" not in x["index"]:  # forget about indice that are tests
+                        if indicesIwant: #check if there is list of index names I want to filter to
+                            if any(z in indexName for z in indicesIwant):
+
+                                if typelist:  # usually want to just go through indices and look for interesting fields
+                                    if len([x for x in typelist if any(x in y for y in keyfields)])>=numfieldsreq:  # look for fields like phone, email etc and then if find them add that index to list, only if two or more fields are present. or to swap logic keyfields if any(y in x for y in typelist)]
+                                        if "test" not in x["index"]:  # forget about indice that are tests
+                                            onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
+                                else:
+                                    onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
+                        else: #if dont care about names of index do this. Need to clean this up but good for now
+
+                            if typelist: #usually want to just go through indices and look for interesting fields
+                                if len([x for x in typelist if any(x in y for y in keyfields)])>=numfieldsreq: #look for fields like phone, email etc and then if find them add that index to list
+                                    if "test" not in x["index"]: #forget about indice that are tests
                                         onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
                             else:
                                 onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
-                    else: #if dont care about names of index do this. Need to clean this up but good for now
+            except Exception as e:
+                fullError = traceback.format_exc()
 
-                        if typelist: #usually want to just go through indices and look for interesting fields
-                            if len([x for x in keyfields if any(y in x for y in typelist)])>=numfieldsreq: #look for fields like phone, email etc and then if find them add that index to list
-                                if "test" not in x["index"]: #forget about indice that are tests
-                                    onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
-                        else:
-                            onestocheck.append(F"{x['index']}??|??{int(x['docs.count']):,d}")
+                with open(os.path.join(basepath, "EsErrors.txt"), 'a') as outfile:
+                    outfile.write(
+                        f"\n{ipaddress}:{str(fullError)}\n---------------------------------------------------------\n")
+
+                pass
         t.close()
-        ok = [x.replace("??|??"," | ") for x in onestocheck]
+        ok = [x.replace("??|??",f" {Fore.CYAN}|{Fore.RESET} ") for x in onestocheck]
         ok = "\n        "+"\n        ".join(ok)
-        print(F"    Found \033[91m{str(len(onestocheck))}\x1b[0m indices that have fields that match your desired fields: {ok}")
+        print(F"    Found \033[91m{str(len(onestocheck))}\x1b[0m indices that have fields that match what you want: {ok}")
 
         jsonappendfile(os.path.join(basepath,"ElasticFound.json"),all)
 

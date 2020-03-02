@@ -119,7 +119,7 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
     if ignorelogfile: #kind of self-explanatory
         go = True
     else:
-        if checkifIPalreadyparsed(dbip, dbtype="Elastic"):
+        if checkifIPalreadyparsed(dbip, dbtype="Mongo"):
             go = False
         else:
             go = True
@@ -234,7 +234,7 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                                         print(f"            Skipping {Fore.LIGHTRED_EX} {db}:{collection} {Fore.RESET} because only has {Fore.LIGHTBLUE_EX}{docsize}{Fore.RESET} records")
                     if totalrecords == 0:
                         print(f"    {Fore.LIGHTGREEN_EX}No collections{Fore.RESET} with fields matching specified strings found!")
-                cdict = [{"ipaddress": dbip, "databaseinfo": collectionNames}]
+                cdict = [{"ipaddress": dbip, "port":portnumber,"databaseinfo": collectionNames}]
                 if toobig:
                     jsonappendfile(os.path.join(basepath, "Mongotoobig.json"), toobig)
                     print("    Following collection:database have more than 800,000 records. Info addedd to 'mongotoobig.json'")
