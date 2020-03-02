@@ -1,5 +1,7 @@
 # ODBgrabber
 ![](odbdemo2.gif)
+
+
 ```
     Examples: python ODBgrabber.py -cn US -p 8080 -t users --elastic --shodan --csv --limit 100
               python ODBgrabber.py -ip 192.168.2:8080 --mongo --ignorelogs --nosizelimits
@@ -59,19 +61,22 @@ Post-processing:
                         separated full records that you got from other
                         sources.
  ```
+ 
+tl;dr: ODBgrabber is a tool to search for open databases that will dump indices/collections based on criteria YOU define. Or if you already know IP's you want to connect to, you can specify those. 
+
 Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to get the data I care about as boy is there a lot of junk being hosted out there. Other tools seem to either only query open databases or dump them once you've identified them. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
 
 In terms of identifying databases you can:
 * query Shodan using all possible paramters (filter by country, port number, whatever)
 * specify single database or single database and index
 * load up file that has list of IP addresses
-* paste from list of IP addresses you have
+* paste list of IP addresses from cipboard
 
 This will also keep track of all the IP addresses and databases you have queried and will check to make sure you haven't already queried the IP. But if you want to connect to server you have already connected to, you have that option.
 
 See the odbconfig.py file to specify your parameters, because really name of the game is getting data YOU care about. I provided some examples in the config file. Play around with them!
 
-The minimum size database script will dump is 40 documents and max is <b>800000</b>, but you can set flag to grab database with unlimited number of documents if you like. Just be careful. If you don't set "nolimit" flag, script will create file with indices/collections that were too big along with a 5 entries from the index so you can take a look and see if want to grab them later.
+The minimum size database script will dump is 40 documents and max is <b>800000</b>, but you can set flag to grab database with unlimited number of documents if you like. Just be careful. If you don't set "nolimit" flag, script will create file with indices/collections that were too big along with a couple 5 entries from the index so you can take a look and see if want to grab them later.
 
 <b>Customization:</b>
 * specify what index or collection names you want to collect by specifying substrings in config file. For example, if have the term "client", script will pull index called "clients" or "client_data." I recommend you keep these lists blank as you never know what databases you care about will be called and instead specify the fields you care about.
@@ -104,5 +109,5 @@ Next steps:
 * add other open directory search engines (zoomeye, etc.)
 
 Known Issues
-* unable to scroll past first page for certain ES instances due to way ES <2.0 works. Appreciate any help!
+* unable to scroll past first page for certain ES instances due to way ES <2.0 works. Appreciate any help! <b>Pretty sure fixed this. Open issue if get scrollid errors</b>
 
