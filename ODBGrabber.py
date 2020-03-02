@@ -2,7 +2,7 @@ import ODBlib.mongoscraper as mongoscraper
 import ODBlib.EsScanAndDump as EsScanAndDump
 from colorama import Fore
 import os
-from ODBlib.ODBhelperfuncs import shodan_query,ipsfromclipboard,jsonfoldert0mergedcsv,valid_ip,ipsfromfile,printsummary,getstats
+from ODBlib.ODBhelperfuncs import shodan_query,ipsfromclipboard,jsonfoldert0mergedcsv,valid_ip,ipsfromfile,printsummary,getstats,checkifIPalreadyparsed
 
 
 """
@@ -10,7 +10,7 @@ To do:
 1. multithread
 2. alt method for ES instances that don't allow scrolling or fix issue
 3. 
-4.add counter for dbs within server
+4.check for done ips on frontend and skip w/o writing individua messages
 
 """
 
@@ -166,6 +166,13 @@ if __name__ == '__main__':
             totalrecords = 0
             badips=[]
             ips =[]
+
+            if args.elastic:
+                PRODUCT = "elastic"
+
+                # other = ' all:"elastic indices”'
+            elif args.mongo:
+                PRODUCT = "mongodb"
             if args.paste:
                 ips,badips = ipsfromclipboard()
 
@@ -178,32 +185,38 @@ if __name__ == '__main__':
             if not ips:
                 print(f"{Fore.RED}Error:{Fore.RESET} No valid IP addresses found. Try again when have valid IPs. Exiting...")
                 sys.exit()
+
+            if ignorelogs:
+                alreadyparsedips = []
+            else:
+                ipstoparse = [x.split(":")[0] for x in ips]
+                alreadyparsedips = checkifIPalreadyparsed(ipstoparse, dbtype=PRODUCT, multi=True)
+                if alreadyparsedips:
+                    print(f"{Fore.LIGHTGREEN_EX}Skipping{Fore.RESET} {Fore.LIGHTBLUE_EX}{len(alreadyparsedips)}{Fore.RESET} of the servers as you've already parsed them (set --ignorelogs flag if you want them)")
+            countip=0
             for x in ips:
+                countip+=1
                 if ":" in x:
                     ip, port = x.split(":")
                 else:
                     ip,port = x,""
-                if args.elastic:
-                    if not port:
-                        port = 9200
-                    #print(port)
-                    donecount, recordcount = EsScanAndDump.main(ip,portnumber=port,ignorelogs=ignorelogs,csvconvert=args.csv,Icareaboutsize=careboutsize,getall=GETALL)
-                    donedbs += donecount
-                    totalrecords += recordcount
-                    TYPE="Elasticsearch"
-                elif args.mongo:
-                    if not port:
-                        port = 27017
-                    donecount, recordcount = mongoscraper.mongodbscraper(ip, portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL)
-                    donedbs += donecount
-                    totalrecords += recordcount
-                    TYPE = "MongoDB"
-            #summ = [f"{Fore.RED}RUN SUMMARY{Fore.CYAN}",F"{Fore.RESET}Dumped {Fore.LIGHTBLUE_EX}{str(donedbs)}{Fore.RESET} databases with a total of {Fore.LIGHTBLUE_EX}{totalrecords:,d}{Fore.RESET} records.{Fore.CYAN}",f"{Fore.RESET}{Fore.RED}Have a nice day!{Fore.CYAN}"]
-            printsummary(donedbs,totalrecords)
-            #updatestatsfile(donedbs, totalrecords, len(ips),type=TYPE)
+                if ip not in alreadyparsedips:
+                    print(f"{Fore.LIGHTBLUE_EX}{countip}{Fore.RESET}/{len(ips) - len(alreadyparsedips)}")
 
-            #print(F'\n{Fore.CYAN}##############-----RUN SUMMARY----##############{Fore.RESET}\n')
-            #print(F"    Dumped {Fore.LIGHTBLUE_EX}{str(donedbs)}{Fore.RESET} databases w/ a total of \033[94m{totalrecords:,d}\x1b[0m records.")
+                    if args.elastic:
+                        if not port:
+                            port = 9200
+                        donecount, recordcount = EsScanAndDump.main(ip,portnumber=port,ignorelogs=ignorelogs,csvconvert=args.csv,Icareaboutsize=careboutsize,getall=GETALL)
+                        donedbs += donecount
+                        totalrecords += recordcount
+                    elif args.mongo:
+                        if not port:
+                            port = 27017
+                        donecount, recordcount = mongoscraper.mongodbscraper(ip, portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL)
+                        donedbs += donecount
+                        totalrecords += recordcount
+            printsummary(donedbs,totalrecords)
+
 
         elif args.shodan:
             if not ODBconfig.SHODAN_API_KEY:
@@ -217,11 +230,10 @@ if __name__ == '__main__':
 
                 if args.elastic:
                     PRODUCT = "elastic"
-                    TYPE = "ElasticSearch"
+
                     #other = ' all:"elastic indices”'
                 elif args.mongo:
                     PRODUCT="mongodb"
-                    TYPE = "MongoDB"
                     other = " all:'mongodb server information' all:'metrics'" #make sure only getting open dbs that dont req auth
                 addterms =""
                 country=""
@@ -234,29 +246,37 @@ if __name__ == '__main__':
                     addterms = f" {args.terms}"
                 QUERY = f'product:{PRODUCT}{shodanport}{country}{other}{addterms}'
                 print(f"Your Shodan Query: {Fore.CYAN}'{QUERY}'{Fore.RESET} with max results of {Fore.LIGHTBLUE_EX}{limit}{Fore.RESET}")
-                #sys.exit()
                 listres = shodan_query(query=QUERY,limit=limit)
-                totalshodanres = str(len(listres))
+                totalshodanres = len(listres)
                 if len(listres) ==0:
                     print(f"{Fore.RED}\nNo results{Fore.RESET}. Shodan server either overloaded or actually no results (server doesn't specify, which is annoying).")
                 else:
-                    print(f"Found {Fore.CYAN}{str(totalshodanres)}{Fore.RESET} results!")
+                    print(f"    Found {Fore.CYAN}{str(totalshodanres)}{Fore.RESET} results!")
                 donedbs = 0
                 totalrecords = 0
                 counts=0
+                if ignorelogs:
+                    alreadyparsedips = []
+                else:
+                    shodanips = [x[0] for x in listres]
+                    alreadyparsedips = checkifIPalreadyparsed(shodanips,dbtype=PRODUCT,multi=True)
+                    if alreadyparsedips:
+                        print(f"{Fore.LIGHTGREEN_EX}Skipping{Fore.RESET} {Fore.LIGHTBLUE_EX}{len(alreadyparsedips)}{Fore.RESET} of the servers as you've already parsed them (set --ignorelogs flag if you want them)")
                 for x in listres:
-                    counts+=1
-                    print(f"{Fore.LIGHTBLUE_EX}{counts}{Fore.RESET}/{totalshodanres}")
                     ipaddress,product,port = x
-                    if product.lower() =="elastic":
-                        donecount, recordcount = EsScanAndDump.main(ipaddress,portnumber=port,csvconvert=args.csv,ignorelogs=ignorelogs,Icareaboutsize=careboutsize,getall=GETALL)
-                        donedbs += donecount
-                        totalrecords += recordcount
+                    if ipaddress not in alreadyparsedips:
+                        counts+=1
 
-                    elif product.lower() =="mongodb":
-                        donecount, recordcount = mongoscraper.mongodbscraper(ipaddress,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL)
-                        donedbs += donecount
-                        totalrecords += recordcount
+                        print(f"{Fore.LIGHTBLUE_EX}{counts}{Fore.RESET}/{totalshodanres-len(alreadyparsedips)}")
+
+                        if product.lower() =="elastic":
+                            donecount, recordcount = EsScanAndDump.main(ipaddress,portnumber=port,csvconvert=args.csv,ignorelogs=ignorelogs,Icareaboutsize=careboutsize,getall=GETALL)
+                            donedbs += donecount
+                            totalrecords += recordcount
+
+                        elif product.lower() =="mongodb":
+                            donecount, recordcount = mongoscraper.mongodbscraper(ipaddress,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL)
+                            donedbs += donecount
+                            totalrecords += recordcount
                 printsummary(donedbs, totalrecords)
-                #updatestatsfile(donedbs,totalrecords,len(listres),type=TYPE)
 
