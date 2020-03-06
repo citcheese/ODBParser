@@ -2,7 +2,7 @@
 
 import ODBlib.ESindexdump as ESindexdump
 from elasticsearch import Elasticsearch,exceptions
-import os
+import os,sys
 import pandas as pd
 import ODBconfig
 from colorama import Fore
@@ -13,11 +13,6 @@ from tqdm import tqdm
 
 pd.set_option('display.max_colwidth', -1)
 #pd.options.display.width = 0
-"""
-To do:
-1. add code for es1 scroll
-3. mulithread
-"""
 
 basepath = ODBconfig.basepath
 typelist = ODBconfig.typelist
@@ -36,7 +31,9 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
     import pandas as pd
     import datetime
     import os
-    import time, msvcrt
+    import time
+    if sys.platform == "win32":
+        import msvcrt
     onestocheck=[]
 
     es = Elasticsearch([{'host': ipaddress, 'port': portnumber,"timeout":10,"requestTimeout":2,'retry_on_timeout':True,'max_retries':2}])
@@ -63,11 +60,11 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
         t.refresh()
         for x in t:
             indexName = x['index']
-            if len(indexName)>29:
-                spacing = 30
+            if len(indexName)>24:
+                spacing = 25
             else:
                 spacing = len(indexName)
-            t.set_description_str(F"        Parsing {Fore.CYAN}{indexName[:30]}{Fore.RESET} { ' ' * (31-spacing)}")
+            t.set_description_str(F"        Parsing {Fore.CYAN}{indexName[:24]}{Fore.RESET} { ' ' * (25-spacing)}")
 
             try:
                 mapping = es.indices.get_mapping(index=indexName)  # get all fields in index
@@ -118,26 +115,27 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
         with open(os.path.join(basepath, "EsErrors.txt"), 'a') as outfile:
             outfile.write(f"\n{ipaddress}:{str(fullError)}\n---------------------------------------------------------\n")
         print(F"Issue with {Fore.RED}{indexName}{Fore.RESET} (check logs for more info)")
-    if len(onestocheck)>20: #added this as sometimes got list back of obviously bad dbs but cant create rule for everythign otherwise will rule out good dbs
-        timeout = 10
-        startTime = time.time()
-        inp = None
-        print(f"\nSeems found {Fore.LIGHTBLUE_EX}{str(len(onestocheck))}{Fore.RESET} databases which may imply found bunch of BS dbs. \n    If you want to skip this server just {Fore.RED}hit 'esc' key {Fore.RESET}in next 10 seconds or forever hold your peace.")
-        while True:
-            print(round(time.time() - startTime), end="\r")
+    if sys.platform == "win32": #check if user has windows otherwise below will result in error
+        if len(onestocheck)>20: #added this as sometimes got list back of obviously bad dbs but cant create rule for everythign otherwise will rule out good dbs
+            timeout = 10
+            startTime = time.time()
+            inp = None
+            print(f"\nSeems found {Fore.LIGHTBLUE_EX}{str(len(onestocheck))}{Fore.RESET} databases which may imply found bunch of BS dbs. \n    If you want to skip this server just {Fore.RED}hit 'esc' key {Fore.RESET}in next 10 seconds or forever hold your peace.")
+            while True:
+                print(round(time.time() - startTime), end="\r")
 
-            if msvcrt.kbhit():
-                inp = msvcrt.getwch()
-                if inp == chr(27):
+                if msvcrt.kbhit():
+                    inp = msvcrt.getwch()
+                    if inp == chr(27):
+                        break
+                elif time.time() - startTime > timeout:
                     break
-            elif time.time() - startTime > timeout:
-                break
 
-        if inp == chr(27):
-            print(f"\n{Fore.GREEN}Got it, skipping this server...{Fore.RESET}")
-            onestocheck =[]
-        else:
-            print("Ok, gonna grab em all then, but don't say I didn't warn you...")
+            if inp == chr(27):
+                print(f"\n{Fore.GREEN}Got it, skipping this server...{Fore.RESET}")
+                onestocheck =[]
+            else:
+                print("Ok, gonna grab em all then, but don't say I didn't warn you...")
 
     return onestocheck
 
@@ -209,7 +207,7 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
             if toobig:
                 jsonappendfile(os.path.join(basepath, "Elastictoobig.json"), toobig)
                 ok = [x.replace("??|??", " | ") for x in bigones]
-                ok = "      " + "\n        ".join(ok)
+                ok = "          " + "\n        ".join(ok)
                 print(F"    The following indices {Fore.LIGHTGREEN_EX}are too big{Fore.RESET}. Adding info to {Fore.CYAN}'Elastictoobig.json'{Fore.RESET}(Set 'nosizelimit' flag, if you want them): {ok}")
 
             indicestodump = [x for x in indicestodump if x not in bigones]
@@ -237,9 +235,10 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
                     convertjsondumptocsv(os.path.join(basepath,ipaddress,f"{ipaddress}_{indexName}_ES.json"))
                     print(f"{Fore.GREEN}        Converted{Fore.RESET} dump to CSV for you...")
 
-
-
-        print(F"\n{Fore.GREEN}Server Summary:{Fore.RESET} Succesfully dumped \033[94m{str(len(done))}\x1b[0m databases with a total of \033[94m{count:,d}\x1b[0m records.\n")
+        if index:
+            print(F"\n{Fore.GREEN}Server Summary:{Fore.RESET} Database Dump complete.\n")
+        else:
+            print(F"\n{Fore.GREEN}Server Summary:{Fore.RESET} Succesfully dumped \033[94m{str(len(done))}\x1b[0m databases with a total of \033[94m{count:,d}\x1b[0m records.\n")
 
     else:
        pass
