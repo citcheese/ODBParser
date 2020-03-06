@@ -261,6 +261,22 @@ def updatestatsfile(donedbs=0,totalrecords=0,parsedservers=0,type="ElasticSearch
 def getstats():
     absolute_path = os.path.dirname(os.path.abspath(__file__))
     fpath = os.path.join(absolute_path, "ODBstats.json")
+    if not os.path.exists(fpath):
+        item = {}
+        elastic ={}
+        mongo={}
+        elastic["databases dumped"]=0
+        elastic["total records dumped"] =0
+        elastic["parsed servers"] = 0
+        mongo["databases dumped"]=0
+        mongo["total records dumped"] =0
+        mongo["parsed servers"] = 0
+        item["ElasticSearch"] = elastic
+        item["MongoDB"] = mongo
+
+        with open(fpath, "w") as f:
+            json.dump(item,f)
+
     #fpath = os.path.join("ODBlib","ODBstats.json")
     with open(fpath) as f:
         con = json.load(f)
