@@ -14,24 +14,30 @@ Wrote this as wanted to create one-stop OSINT tool for searching, parsing and an
 
 Features
 -------------
-In terms of identifying databases you can:
+To identify databases you can:
 * query Shodan and BinaryEdge using all possible paramters (filter by country, port number, whatever)
-* specify single database or single database and index
+* specify single IP address
 * load up file that has list of IP addresses
-* paste list of IP addresses from cipboard
+* paste list of IP addresses from clipboard
 
-This will also keep track of all the IP addresses and databases you have queried and will check to make sure you haven't already queried the IP. But if you want to connect to server you have already connected to, you have that option.
+Other features:
+* keep track of all the IP addresses and databases you have queried along with info about each server. 
+* maintains stats file with number of IP's you've queried, number of databases you've parsed and number of records you've dumped
+* convert dumps you already have to CSV
 
-See the odbconfig.py file to specify your parameters, because really name of the game is getting data YOU care about. I provided some examples in the config file. Play around with them!
 
 The minimum size database script will dump is 40 documents and max is <b>800000</b>, but you can set flag to grab database with unlimited number of documents if you like. Just be careful. If you don't set "nolimit" flag, script will create file with indices/collections that were too big along with a couple 5 entries from the index so you can take a look and see if want to grab them later.
 
 Customization
 -------------
+See the odbconfig.py file to specify your parameters, because really name of the game is getting data YOU care about. I provided some examples in the config file. Play around with them!
+You can:
+
 * specify what index or collection names you want to collect by specifying substrings in config file. For example, if have the term "client", script will pull index called "clients" or "client_data." I recommend you keep these lists blank as you never know what databases you care about will be called and instead specify the fields you care about.
 * specify what fields you care about: if you only want to grab ES indicdes that have  "email" in a field name, e.g."user_emails", you can do that. If you want to make sure the index has at least 2 fields you care about, you can do that too. Or if you just want to grab everything no matter what fields are in there, you can do that too.
 * specify what indices you DON'T want e.g., system index names and others that are generally used for basic logging. Examples provided in config file.
 * override config and grab everything on a server
+* specify output (default is JSON, can choose CSV)
 
 
 
@@ -114,7 +120,7 @@ Post-processing:
 Notes
 -------------
 * Script is pretty verbose (maybe too verbose) but I like seeing what's going on. Feel free to silence print statements if you don't care.
-* All output is JSON. You can convert the files to CSV on the fly or you can run script after you dump ES instance to only convert files you care about to JSON. Whatever you want. If you convert on fly, script will move JSON files to folder called "JSON backups" in same directory.<b>NOTE:</b> When converting to CSV, script drops exact duplicate rows and drops columns and rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather have exact copy of JSON file.
+* Default output is JSON. You can convert the files to CSV on the fly or you can run script after you dump ES instance to only convert files you care about to JSON. Whatever you want. If you convert on fly, script will move JSON files to folder called "JSON backups" in same directory.<b>NOTE:</b> When converting to CSV, script drops exact duplicate rows and drops columns and rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather have exact copy of JSON file.
 * If you already have JSON files that you have dumped from other sources, you can convert them to CSV with the script. Again, script will move JSON files to a backup folder.
 * If script pulls back huge number of indices that have field you care about, script will list names of the dbs, pause and give you ten seconds to decide whether you want to go ahead and pull all the data from every index as I've found if you get too many databases returned even after you've specified fields you want, there is a good chance data is fake or useless logs and you can usually tell from name whether either possibility is the case. If you don't act within 10 seconds, script will go ahead and dump every index.
 * As you may have noticed, lot of people have been scanning for MongoDB databases and holding them hostage, often changing name to something like "TO_RESTORE_EMAIL_XXXRESTORE.COM." My MongoDb scraper will ignore all databases and collections that have been pwned by checking name of DB/collection against list of strings that indicate pwnage (check it in mongodbscraper function if want to add your own terms)
