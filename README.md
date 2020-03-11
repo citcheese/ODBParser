@@ -62,12 +62,16 @@ Post-processing:
                         sources.
  ```
 
+TL;DR
+-------------
+ODBgrabber is a tool to search for open databases that will dump indices/collections based on criteria YOU define. Or if you already know IP's you want to connect to, you can specify those.
+
 What is this?
 -------------
-tl;dr: ODBgrabber is a tool to search for open databases that will dump indices/collections based on criteria YOU define. Or if you already know IP's you want to connect to, you can specify those.
-
 Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to get the data I care about as boy is there a lot of junk being hosted out there. Other tools seem to either only query open databases or dump them once you've identified them and then will own dump db's indiscriminately resulting in bunch of data you may not care about. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
 
+Features
+-------------
 In terms of identifying databases you can:
 * query Shodan using all possible paramters (filter by country, port number, whatever)
 * specify single database or single database and index
@@ -80,13 +84,15 @@ See the odbconfig.py file to specify your parameters, because really name of the
 
 The minimum size database script will dump is 40 documents and max is <b>800000</b>, but you can set flag to grab database with unlimited number of documents if you like. Just be careful. If you don't set "nolimit" flag, script will create file with indices/collections that were too big along with a couple 5 entries from the index so you can take a look and see if want to grab them later.
 
-<b>Customization:</b>
+Customization
+-------------
 * specify what index or collection names you want to collect by specifying substrings in config file. For example, if have the term "client", script will pull index called "clients" or "client_data." I recommend you keep these lists blank as you never know what databases you care about will be called and instead specify the fields you care about.
 * specify what fields you care about: if you only want to grab ES indicdes that have  "email" in a field name, e.g."user_emails", you can do that. If you want to make sure the index has at least 2 fields you care about, you can do that too. Or if you just want to grab everything no matter what fields are in there, you can do that too.
 * specify what indices you DON'T want e.g., system index names and others that are generally used for basic logging. Examples provided in config file.
 * override config and grab everything on a server
 
-<b>Other Features/Notes:</b>
+Notes
+-------------
 * Script is pretty verbose (maybe too verbose) but I like seeing what's going on. Feel free to silence print statements if you don't care.
 * All output is JSON. You can convert the files to CSV on the fly or you can run script after you dump ES instance to only convert files you care about to JSON. Whatever you want. If you convert on fly, script will move JSON files to folder called "JSON backups" in same directory.<b>NOTE:</b> When converting to CSV, script drops exact duplicate rows and drops columns and rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather have exact copy of JSON file.
 * If you already have JSON files that you have dumped from other sources, you can convert them to CSV with the script. Again, script will move JSON files to a backup folder.
@@ -94,7 +100,8 @@ The minimum size database script will dump is 40 documents and max is <b>800000<
 * As you may have noticed, lot of people have been scanning for MongoDB databases and holding them hostage, often changing name to something like "TO_RESTORE_EMAIL_XXXRESTORE.COM." My MongoDb scraper will ignore all databases and collections that have been pwned by checking name of DB/collection against list of strings that indicate pwnage (check it in mongodbscraper function if want to add your own terms)
 * keeps track of number of databases and total number of records you've dumped
 
-<b>Installation and Reqs</b>
+Installation and Requirements
+-------------
 * Clone or download to machine
 * configure parameters in ODBconfig.py file
 * install requirements from file
@@ -104,12 +111,11 @@ I suggest creating virtual environment for scripts so have no issues with incorr
 
 PLEASE USE RESPONSIBLY
 
-Next steps:
+Next Steps and Known Issues
+-------------
 * clean up code a bit more
 * multithread various processes.
 * expand to other db types
 * add other open directory search engines (zoomeye, etc.)
-
-Known Issues
 * unable to scroll past first page for certain ES instances due to way ES <2.0 works. Appreciate any help! <b>Pretty sure fixed this. Open issue if get scrollid errors</b>
 
