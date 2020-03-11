@@ -62,6 +62,8 @@ Post-processing:
                         sources.
  ```
 
+What is this?
+-------------
 tl;dr: ODBgrabber is a tool to search for open databases that will dump indices/collections based on criteria YOU define. Or if you already know IP's you want to connect to, you can specify those.
 
 Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to get the data I care about as boy is there a lot of junk being hosted out there. Other tools seem to either only query open databases or dump them once you've identified them and then will own dump db's indiscriminately resulting in bunch of data you may not care about. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
