@@ -1,4 +1,4 @@
-# ![](glassdb.png) ODBgrabber
+# <img src="./glassdb.png" width="100" height="100"> ODBgrabber
 ![](odbdemo2.gif)
 
 
