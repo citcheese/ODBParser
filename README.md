@@ -5,6 +5,8 @@
     </tr>
 </table> 
 
+
+
 TL;DR
 -------------
 ODBgrabber is a tool to search for open databases that will dump indices/collections based on criteria YOU define. Or if you already know IP's you want to connect to, you can specify those.
@@ -17,13 +19,13 @@ Wrote this as wanted to create one-stop OSINT tool for searching, parsing and an
 Features
 -------------
 To identify databases you can:
-* query Shodan and BinaryEdge using all possible paramters (filter by country, port number, whatever)
+* query <b>Shodan</b> and <b>BinaryEdge</b> using all possible paramters (filter by country, port number, whatever)
 * specify single IP address
 * load up file that has list of IP addresses
 * paste list of IP addresses from clipboard
 
 Other features:
-* keep track of all the IP addresses and databases you have queried along with info about each server. 
+* keep track of all the IP addresses and databases you have queried along with info about each server.
 * maintains stats file with number of IP's you've queried, number of databases you've parsed and number of records you've dumped
 * convert dumps you already have to CSV
 
@@ -46,14 +48,32 @@ You can:
 Installation and Requirements
 -------------
 * Clone or download to machine
-* Get API keys for Shodan and BinaryEdge
+* Get API keys for Shodan and/or BinaryEdge
 * configure parameters in ODBconfig.py file
 * install requirements from file
 
 I suggest creating virtual environment for scripts so have no issues with incorrect module versions.
-<b>Note:</b> Tested ONLY on Python 3.7.3 and on Windows 10. Probably works on all versions of Python 3 and don't think there is any Windows-specific code, but haven't tested to confirm.
+<b>Note:</b> Tested ONLY on Python 3.7.3 and on Windows 10. 
 
 <b>PLEASE USE RESPONSIBLY</b>
+
+
+Notes
+-------------
+* Script is pretty verbose (maybe too verbose) but I like seeing what's going on. Feel free to silence print statements if you don't care.
+* Default output is JSON. You can convert the files to CSV on the fly or you can run script after you dump ES instance to only convert files you care about to JSON. Whatever you want. If you convert on fly, script will move JSON files to folder called "JSON backups" in same directory.<b>NOTE:</b> When converting to CSV, script drops exact duplicate rows and drops columns and rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather have exact copy of JSON file.
+* If you already have JSON files that you have dumped from other sources, you can convert them to CSV with the script. Again, script will move JSON files to a backup folder.
+* If script pulls back huge number of indices that have field you care about, script will list names of the dbs, pause and give you ten seconds to decide whether you want to go ahead and pull all the data from every index as I've found if you get too many databases returned even after you've specified fields you want, there is a good chance data is fake or useless logs and you can usually tell from name whether either possibility is the case. If you don't act within 10 seconds, script will go ahead and dump every index.
+* As you may have noticed, lot of people have been scanning for MongoDB databases and holding them hostage, often changing name to something like "TO_RESTORE_EMAIL_XXXRESTORE.COM." My MongoDb scraper will ignore all databases and collections that have been pwned by checking name of DB/collection against list of strings that indicate pwnage (check it in mongodbscraper function if want to add your own terms)
+* keeps track of number of databases and total number of records you've dumped
+
+Next Steps and Known Issues
+-------------
+* clean up code a bit more
+* multithread various processes.
+* expand to other db types
+* add other open directory search engines (zoomeye, etc.)
+* unable to scroll past first page for certain ES instances due to way ES <2.0 works. Appreciate any help! <b>Pretty sure fixed this. Open issue if get scrollid errors</b>
 
 Usage
 -------------
@@ -116,23 +136,4 @@ Post-processing:
                         separated full records that you got from other
                         sources.
  ```
-
-
-
-Notes
--------------
-* Script is pretty verbose (maybe too verbose) but I like seeing what's going on. Feel free to silence print statements if you don't care.
-* Default output is JSON. You can convert the files to CSV on the fly or you can run script after you dump ES instance to only convert files you care about to JSON. Whatever you want. If you convert on fly, script will move JSON files to folder called "JSON backups" in same directory.<b>NOTE:</b> When converting to CSV, script drops exact duplicate rows and drops columns and rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather have exact copy of JSON file.
-* If you already have JSON files that you have dumped from other sources, you can convert them to CSV with the script. Again, script will move JSON files to a backup folder.
-* If script pulls back huge number of indices that have field you care about, script will list names of the dbs, pause and give you ten seconds to decide whether you want to go ahead and pull all the data from every index as I've found if you get too many databases returned even after you've specified fields you want, there is a good chance data is fake or useless logs and you can usually tell from name whether either possibility is the case. If you don't act within 10 seconds, script will go ahead and dump every index.
-* As you may have noticed, lot of people have been scanning for MongoDB databases and holding them hostage, often changing name to something like "TO_RESTORE_EMAIL_XXXRESTORE.COM." My MongoDb scraper will ignore all databases and collections that have been pwned by checking name of DB/collection against list of strings that indicate pwnage (check it in mongodbscraper function if want to add your own terms)
-* keeps track of number of databases and total number of records you've dumped
-
-Next Steps and Known Issues
--------------
-* clean up code a bit more
-* multithread various processes.
-* expand to other db types
-* add other open directory search engines (zoomeye, etc.)
-* unable to scroll past first page for certain ES instances due to way ES <2.0 works. Appreciate any help! <b>Pretty sure fixed this. Open issue if get scrollid errors</b>
 
