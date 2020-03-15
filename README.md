@@ -1,7 +1,7 @@
-#<table>
+#<table border ="0">
     <tr>
         <td valign="top"><img src="./glassdb.png" width="100" height="100" /></td>
-        <td valign="middle">This is my text!</td>
+        <td valign="middle"><h2>ODBgrabber</h2></td>
     </tr>
 </table> 
 
