@@ -6,6 +6,9 @@
 #put your Shodan key here
 SHODAN_API_KEY = ""
 
+#put your BinaryEdge API key here
+BINARY_API_KEY= ""
+
 #choose directory where want to put the files, otherwise will go wherever you run script
 basepath = r""
 
