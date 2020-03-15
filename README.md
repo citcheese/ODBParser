@@ -1,4 +1,4 @@
-# ![](glassdb.png| width=10) ODBgrabber
+# ![](glassdb.png | width=10) ODBgrabber
 ![](odbdemo2.gif)
 
 
