@@ -1,14 +1,9 @@
-#<table border ="0">
+<table border =0 color=white>
     <tr>
         <td valign="top"><img src="./glassdb.png" width="100" height="100" /></td>
         <td valign="middle"><h2>ODBgrabber</h2></td>
     </tr>
 </table> 
-
-<img src="./glassdb.png" width="100" height="100"> ODBgrabber
-![](odbdemo2.gif)
-
-
 
 TL;DR
 -------------
