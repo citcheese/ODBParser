@@ -34,7 +34,7 @@ def getCollectionKeys(collection):
     keys_set = set(keys_list)
     return keys_set
 
-def dumpMongoDbcollectiontoCSV(database, collection, dbip,portnumber,convertTOcsv=False):
+def dumpMongoDbcollectiontoCSV(database, collection, dbip,portnumber,convertTOcsv=False,flattennestedjson=False,getridofuselessdata=False):
     client = pymongo.MongoClient(f"mongodb://{dbip}:{str(portnumber)}",
                                  serverSelectionTimeoutMS=5000)  # defaults to port 27017, timeout in ms
 
@@ -49,8 +49,12 @@ def dumpMongoDbcollectiontoCSV(database, collection, dbip,portnumber,convertTOcs
     with open(os.path.join(basepath, dbip, f"{dbip}_{database}_{collection}_MDB.json"), "w") as f:
         f.write('[')
         for document in cursor:
-            f.write(json.dumps(document, default=json_util.default))  # json_util.default))
-            f.write(',')
+            try:
+                f.write(json.dumps(document, default=json_util.default))  # json_util.default))
+
+                f.write(',')
+            except Exception as e:
+                pass
             count9 += 1
             sumt = count9 / 50
             if sumt.is_integer():
@@ -66,13 +70,13 @@ def dumpMongoDbcollectiontoCSV(database, collection, dbip,portnumber,convertTOcs
         if os.path.isfile(os.path.join(basepath, dbip,
                                        f"{dbip}_{database}_{collection}_MDB.json")):  # check if the file exists first
             convertjsondumptocsv(
-                os.path.join(basepath, dbip, f"{dbip}_{database}_{collection}_MDB.json"))
+                os.path.join(basepath, dbip, f"{dbip}_{database}_{collection}_MDB.json"),flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata)
             print(f"{Fore.GREEN}        Converted{Fore.RESET} dump to CSV for you...")
 
     return (count9)
 
 
-def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careaboutpwneddbs=True,ignorelogfile=False,Icareaboutsize=True,convertTOcsv=False,typelist=typelist,getall=False,getcollection=""):
+def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careaboutpwneddbs=True,ignorelogfile=False,Icareaboutsize=True,convertTOcsv=False,typelist=typelist,getall=False,getcollection="",flattennestedjson=False,getridofuselessdata=False):
     import datetime
     global collectionamesIwant
     global basepath
@@ -130,8 +134,6 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
     else:
         print(f"{Fore.GREEN}Connecting{Fore.RESET} to db at {Fore.LIGHTRED_EX}{dbip}:{portnumber}{Fore.RESET}...")
         client = pymongo.MongoClient(f"mongodb://{dbip}:{str(portnumber)}",serverSelectionTimeoutMS=5000) # defaults to port 27017, timeout in ms
-
-
         try:
             listofdbs = client.list_database_names()
         except Exception as e:
@@ -140,12 +142,9 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
             with open(os.path.join(basepath, "MongoErrors.txt"), 'a') as outfile:
                 outfile.write(f"{dbip}:{str(e)}\n")
         if getcollection:
-            #print("yes")
             db,collection = getcollection.split(":")
-            #print(f"Database:{db},{collection}")
-            totalrecords = dumpMongoDbcollectiontoCSV(db,collection,dbip,portnumber,convertTOcsv=convertTOcsv)
-            cdict = [{"ipaddress": dbip, "databaseinfo": ""}]
-
+            totalrecords = dumpMongoDbcollectiontoCSV(db,collection,dbip,portnumber,convertTOcsv=convertTOcsv,flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata)
+            cdict = [{"ipaddress": dbip,"port":portnumber, "databaseinfo": ""}]
             totaldbs = 1
 
         else:
@@ -183,8 +182,9 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                                 if collectionamesIwant:  # check if care about collection names
                                     if any(z in y for z in collectionamesIwant):
                                         if typelist:
+
                                             collectionkeys = getCollectionKeys(client[x][y])  # get all keys in collection
-                                            if len([x for x in collectionkeys if any(y in x for y in typelist)]) > numfieldsreq:
+                                            if len([x for x in typelist if any(x in y for y in collectionkeys)]) > numfieldsreq:
                                                 collectionstoget.append((x, y))
                                         else:
                                             collectionstoget.append((x, y))
@@ -193,7 +193,7 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                                     if typelist:
 
                                         collectionkeys = getCollectionKeys(client[x][y])  # get all keys in collection
-                                        if len([x for x in collectionkeys if any(y in x for y in typelist)]) > numfieldsreq:
+                                        if len([x for x in typelist if any(x in y for y in collectionkeys)]) > numfieldsreq:
                                             collectionstoget.append((x, y))
                                     else:
                                         collectionstoget.append((x, y))
@@ -208,7 +208,7 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                                     if docsize > 50:  # check to see if collection has at least X number of items
                                         if Icareaboutsize:
                                             if docsize < 800000:  # change this number if you want
-                                                recordcount = dumpMongoDbcollectiontoCSV(db,collection,dbip,portnumber,convertTOcsv=convertTOcsv)
+                                                recordcount = dumpMongoDbcollectiontoCSV(db,collection,dbip,portnumber,convertTOcsv=convertTOcsv,flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata)
                                                 totalrecords += recordcount
                                                 totaldbs += 1
 
@@ -227,7 +227,7 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                                                 toobig.append(item)
                                         else:
                                             recordcount = dumpMongoDbcollectiontoCSV(db, collection, dbip, portnumber,
-                                                                                     convertTOcsv=convertTOcsv)
+                                                                                     convertTOcsv=convertTOcsv,flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata)
                                             totalrecords += recordcount
                                             totaldbs += 1
                                     else:

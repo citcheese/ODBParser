@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from tqdm import tqdm
 from colorama import Fore
+import sys
 
 def jsonappendfile(filepath,items):
     prevExists = True
@@ -23,7 +24,7 @@ def jsonappendfile(filepath,items):
         newZ.write(']'.encode())
 
 
-def checkifIPalreadyparsed(ipaddress,dbtype="Elastic",multi=False): #types are Elastic or Mongo
+def checkifIPalreadyparsed(ipaddress,dbtype="Elastic",multi=False,skiptimeouts=False): #types are Elastic or Mongo
     import ODBconfig
     import ijson
     dbtype = dbtype.title().strip("db")
@@ -42,6 +43,7 @@ def checkifIPalreadyparsed(ipaddress,dbtype="Elastic",multi=False): #types are E
         if os.path.getsize(os.path.join(basepath, f"{dbtype}Found.json")) != 0:
             with open(os.path.join(basepath,f"{dbtype}Found.json")) as outfile:
                 doneips = list(ijson.items(outfile, "item.ipaddress")) #inly load ipadrdess key into memory in case file gets crazy big
+
         else:
             doneips =[]
     else:
@@ -59,7 +61,7 @@ def checkifIPalreadyparsed(ipaddress,dbtype="Elastic",multi=False): #types are E
             return False
 
 
-def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False):
+def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False,getridofuselessdata=False):
     import pathlib
     from pandas.io.json import json_normalize
     import numpy as np
@@ -75,11 +77,11 @@ def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False):
             con2 = [json.loads(x) for x in content]
 
             con2 =[x["_source"] for x in con2 if x['_source']] #get rid of empty values
-            outfile = os.path.join(p.parent,f"{foldername}_{p.parts[-1].replace('.json','.csv')}")
+            #outfile = jsonfile.replace('.json','.csv')
         else:
             with open(jsonfile) as f:
                 con2 = json.load(f)
-            outfile = jsonfile.replace('.json','.csv')
+        outfile = jsonfile.replace('.json','.csv')
         if flattennestedjson:
             try:
                 dic_flattened = [flatten_json(d) for d in con2]
@@ -94,7 +96,21 @@ def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False):
 
         else:
             df = pd.DataFrame(con2)
-        df.dropna(axis=1, how='all',inplace=True)
+        if getridofuselessdata:
+            df.replace("blank", np.nan, inplace=True)
+            df.replace("Null", np.nan, inplace=True)
+            df.replace("", np.nan, inplace=True)
+
+            df = df.astype("object")
+            df.dropna(axis=1, how='all', inplace=True)
+            droplist = [x for x in df.columns if all(len(str(y).split(".",1)[0]) < 3 for y in df[x].tolist())]  # find columns if all values only 1 character long e.g. 0,1 y, n
+            df.drop(droplist, axis=1, inplace=True)  # drop them
+
+            df = df.dropna(axis=1, thresh=int(.001 * len(df)))  # drop all columns that have less than .001 values
+            df.replace(np.nan, '', regex=True, inplace=True)
+
+
+
         df.replace(np.nan, '', regex=True,inplace=True)
         cols = df.columns
         dropcols = ["_id", '__v']  # id columns I don't want
@@ -114,14 +130,14 @@ def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False):
         print(f"{jsonfile}: {str(e)}")
     return issuesflattening
 
-def jsonfoldert0mergedcsv(folder,flattennestedjson=False,olddumps=False):
+def jsonfoldert0mergedcsv(folder,flattennestedjson=False,olddumps=False,getridofuselessdata=False):
     files = [x for x in os.listdir(folder) if x.endswith(".json") and "_mapping.json" not in x]
     t = tqdm(files,desc="Now Converting",leave=True)
     issues = []
     for x in t:
         t.set_description(F"Converting: {Fore.LIGHTRED_EX}{x}{Fore.RESET}")
         t.refresh()
-        res = convertjsondumptocsv(os.path.join(folder,x),flattennestedjson=flattennestedjson,olddumps=olddumps)
+        res = convertjsondumptocsv(os.path.join(folder,x),flattennestedjson=flattennestedjson,olddumps=olddumps,getridofuselessdata=getridofuselessdata)
         if res:
             issues.append(x)
     if issues:
@@ -220,7 +236,7 @@ def ipsfromclipboard():
 
 def printsummary(donedbs,totalrecords):
     from colorama import Fore
-    summ = [f"{Fore.RED}RUN SUMMARY{Fore.CYAN}", F"{Fore.RESET}Dumped {Fore.LIGHTBLUE_EX}{str(donedbs)}{Fore.RESET} databases with a total of {Fore.LIGHTBLUE_EX}{totalrecords:,d}{Fore.RESET} records.{Fore.CYAN}", f"{Fore.RESET}{Fore.RED}Have a nice day!{Fore.CYAN}"]
+    summ = [f"{Fore.LIGHTRED_EX}RUN SUMMARY{Fore.CYAN}", F"{Fore.RESET}Dumped {Fore.LIGHTBLUE_EX}{str(donedbs)}{Fore.RESET} databases with a total of {Fore.LIGHTBLUE_EX}{totalrecords:,d}{Fore.RESET} records.{Fore.CYAN}", f"{Fore.RESET}{Fore.LIGHTRED_EX}Have a nice day!{Fore.CYAN}"]
 
     maxlen = max(len(s) for s in summ)
     colwidth = maxlen - 12
@@ -322,3 +338,79 @@ def flatten_json(dictionary):
             break
 
     return dictionary
+
+def binaryedgecheck(BEkey):
+    import requests
+    headers = {'X-Key': BEkey}
+    end = 'https://api.binaryedge.io/v2/user/subscription'
+    req = requests.get(end,headers=headers)
+    req = req.json()
+    return req["requests_left"]
+
+def binaryedgeQuery(query,limit):
+    from pybinaryedge import BinaryEdge
+    import ODBconfig
+    BEkey = ODBconfig.BINARY_API_KEY
+
+    requestleft = binaryedgecheck(BEkey)
+    if requestleft>0:
+        limit = int(limit)
+        #params country:us port
+        pages = int(limit / 20) + (limit % 20 > 0) #20 results per page, see how many pages need to grab by rounding up
+        if pages >999:
+            pages = 1000
+            print("Max pages is 1000")
+        be = BinaryEdge(BEkey)
+
+        counter = 0
+        BEres = []
+        results = be.host_search(query)
+        total = results["total"]
+        maxpages = int(total / 20) + (total % 20 > 0) #20 results per page, see how many pages need to grab by rounding up
+        if pages>maxpages:
+            pages = maxpages
+        if results["events"]:
+            for x in results["events"]:
+                if "error" in x["result"]:
+                    if not x["result"]["error"]: #one more step to get rid of crap
+                        BEres.append((x["target"]["ip"],x["origin"]["type"],x["target"]["port"]))
+                else:
+                    BEres.append((x["target"]["ip"], x["origin"]["type"], x["target"]["port"]))
+
+        try:
+            for i in range(2,maxpages+1):
+                results = be.host_search(query, i)
+                if not results["events"]:
+                    break
+
+                for x in results["events"]:
+                    if "error" in x["result"]:
+
+                        if not x["result"]["error"]:
+                            BEres.append((x["origin"]["ip"], x["origin"]["type"], x["target"]["port"]))
+                    else:
+                        BEres.append((x["target"]["ip"], x["origin"]["type"], x["target"]["port"]))
+        except Exception as e:
+            print(str(e))
+        BEres = list(set(BEres)) #for some reason return sdupe records
+        BEres = BEres[:limit]
+        return BEres
+    elif requestleft ==0:
+        print(
+            f"{Fore.RED}ERROR! {Fore.RESET}Your {Fore.CYAN}BinaryEdge{Fore.RESET} plans has {Fore.GREEN}no more queries left{Fore.RESET}. Wait til requests cycle or pay for a plan")
+        sys.exit()
+
+"""
+Notes:
+def check_rsync(results):
+    if results:
+        for service in results:
+            print('rsync://'+service['target']['ip'])
+            print("Server status: " + service['result']['data']['state']['state'])
+            try:
+                print(Fore.GREEN + service['result']['data']['service']['banner'] + Fore.RESET,)
+            except:
+                print(Fore.RED + 'No information' + Fore.RESET)
+            print("------------------------------")
+
+"""

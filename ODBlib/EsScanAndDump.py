@@ -140,7 +140,7 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
     return onestocheck
 
 
-def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconvert=False,index="",getall=False):
+def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconvert=False,index="",getall=False,flattennestedjson=False,getridofuselessdata=False):
     portnumber = int(portnumber) #make sure port is INT otherwise wont work right
     indicestodump =""
 
@@ -172,8 +172,22 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
         if go:
             try:
                 print(F"Starting scan of ES instance at \033[94m{ipaddress}:{str(portnumber)}\x1b[0m")
+                es = Elasticsearch([{'host': ipaddress, 'port': portnumber, "timeout": 2, "requestTimeout": 2,
+                                     'retry_on_timeout': True, 'max_retries': 2}])
+                if es.ping():
+                    indicestodump = identifyindices(ipaddress,portnumber=portnumber)
+                else:
+                    print(
+                        f"    {Fore.GREEN}Bummer{Fore.RESET}, unable to ping {Fore.LIGHTRED_EX}{ipaddress}{Fore.RESET}. Looks like server is down.")
+                    all = []
+                    item = {}
+                    item['ipaddress'] = ipaddress
+                    item["port"] = portnumber
+                    item["time_check"] = str(datetime.datetime.now())
+                    item["indices"] = ["timedout"]  # lets add keys here
+                    all.append(item)
+                    jsonappendfile(os.path.join(basepath, "ElasticTimeouts.json"), all)
 
-                indicestodump = identifyindices(ipaddress,portnumber=portnumber)
             except Exception as e:
                 fullError = traceback.format_exc()
 
@@ -207,8 +221,8 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
             if toobig:
                 jsonappendfile(os.path.join(basepath, "Elastictoobig.json"), toobig)
                 ok = [x.replace("??|??", " | ") for x in bigones]
-                ok = "          " + "\n        ".join(ok)
-                print(F"    The following indices {Fore.LIGHTGREEN_EX}are too big{Fore.RESET}. Adding info to {Fore.CYAN}'Elastictoobig.json'{Fore.RESET}(Set 'nosizelimit' flag, if you want them): {ok}")
+                ok = "      " + "\n        ".join(ok)
+                print(F"    The following indices {Fore.GREEN}are too big{Fore.RESET}. Adding info to {Fore.CYAN}'Elastictoobig.json'{Fore.RESET}(Set 'nosizelimit' flag, if you want them)\n: {ok}")
 
             indicestodump = [x for x in indicestodump if x not in bigones]
 
@@ -232,7 +246,7 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
                 print(F"{indexName} had an issue (check logs for more info)")
             if csvconvert: #ok so you want to convert json to csv, fine
                 if os.path.isfile(os.path.join(basepath,ipaddress,f"{ipaddress}_{indexName}_ES.json")): #check if the file exists first
-                    convertjsondumptocsv(os.path.join(basepath,ipaddress,f"{ipaddress}_{indexName}_ES.json"))
+                    convertjsondumptocsv(os.path.join(basepath,ipaddress,f"{ipaddress}_{indexName}_ES.json"),flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata)
                     print(f"{Fore.GREEN}        Converted{Fore.RESET} dump to CSV for you...")
 
         if index:
