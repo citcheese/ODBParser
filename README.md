@@ -1,14 +1,9 @@
 <table border =0 color=white>
     <tr>
         <td valign="top"><img src="./glassdb.png" width="100" height="100" /></td>
-        <td valign="middle"><h2>ODBgrabber</h2></td>
+        <td valign="middle"><h1>ODBgrabber</h1></td>
     </tr>
 </table> 
- Tables        | Are           | Cool  
- ------------- |:-------------:| -----:
- col 3 is      | right-aligned | $1600 
- col 2 is      | centered      |   $12 
- zebra stripes | are neat      |    $1 
 
 TL;DR
 -------------
