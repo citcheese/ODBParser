@@ -13,7 +13,7 @@ BINARY_API_KEY= ""
 basepath = r""
 
 #fields you want to make sure are in ES indices and MongoDb collections. Add your own! Or if you want to grab the DB no matter what fields are in there, leave this list blank. Will probably end up with lots of crap, but whatever
-typelist = ['email',"username","alias","firstname","lastname","social security number","surname","patient","password","fullname","employee"]
+typelist = ['email',"username","alias","name","socialsecuritynumber","patient","password","employee","ssn","phone","ipaddress","mobile"]
 
 #choose number of fields from above that must be in index or collection. For example if you want to have index with field containing the word 'email' AND a field containing the word 'IP' you would pick 2.
 numfieldsrequired = 2
