@@ -79,7 +79,7 @@ def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False,getridof
             con2 =[x["_source"] for x in con2 if x['_source']] #get rid of empty values
             #outfile = jsonfile.replace('.json','.csv')
         else:
-            with open(jsonfile) as f:
+            with open(jsonfile,encoding="utf8",errors="replace") as f:
                 con2 = json.load(f)
         outfile = jsonfile.replace('.json','.csv')
         if flattennestedjson:
@@ -117,7 +117,7 @@ def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False,getridof
         cols1 = [x for x in cols if x in dropcols]  # check to see if column is in my df
         df.drop(cols1, axis=1, inplace=True)  #
         df = df.applymap(str)
-        df.drop_duplicates(keep=False, inplace=True)
+        df.drop_duplicates(inplace=True)
         df = df.replace({'\n': '<br>',"\r":"<br>"}, regex=True)
         df.to_csv(outfile,index=False,escapechar='\n') #ignore newline character inside strings
         os.rename(jsonfile,os.path.join(p.parent,"JSON_backups",p.name)) #move json file to jsonbackups folder to keep things tidy
@@ -127,6 +127,7 @@ def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False,getridof
         except:
             pass
     except Exception as e:
+        issuesflattening = True
         print(f"{jsonfile}: {str(e)}")
     return issuesflattening
 
