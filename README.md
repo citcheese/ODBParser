@@ -28,6 +28,10 @@ Dumping options:
 * grab everything hosted on server
 * grab just one index/collection
 
+Post-Processing:
+* convert JSON dumps to CSV
+* remove useless columns from CSV
+
 Other features:
 * keeps track of all the IP addresses and databases you have queried along with info about each server.
 * maintains stats file with number of IP's you've queried, number of databases you've parsed and number of records you've dumped
