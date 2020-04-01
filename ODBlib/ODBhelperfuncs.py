@@ -72,11 +72,13 @@ def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False,getridof
         os.makedirs(os.path.join(p.parent,"JSON_backups"))
     try:
         if olddumps:#use this to convert generic ES dumps where entire record is on each line
-            with open(jsonfile) as f:
+            with open(jsonfile,encoding="utf8") as f:
                 content = f.readlines()
             con2 = [json.loads(x) for x in content]
-
-            con2 =[x["_source"] for x in con2 if x['_source']] #get rid of empty values
+            try:
+                con2 =[x["_source"] for x in con2 if x['_source']] #get rid of empty values
+            except:
+                pass
             #outfile = jsonfile.replace('.json','.csv')
         else:
             with open(jsonfile,encoding="utf8",errors="replace") as f:
