@@ -79,10 +79,6 @@ if __name__ == '__main__':
                         help=f"Use for IP, Shodan, BinaryEdge & Paste methods to specify parser.")
 
     group1.add_argument("--database","-db",help=f"Specify database you want to grab. For MDB must be in format format 'db:collection'. Use with IP arg & 'es' or 'mdb' flag",metavar="")
-
-    group1.add_argument("--index","-in",help=f"Specify index (ES ONLY). Use with IP arg & 'elastic' flag",metavar="")
-    group1.add_argument("--collection","-co",help=f"Specify collection (MDB ONLY). In format 'db:collection'. Use with IP arg & 'mongo' flag",metavar="")
-
     group1.add_argument("--getall","-g",action='store_true',help=f"Get all indices regardless of fields and collection/index names (overrides selections in config file).")
 
     group1.add_argument("--ignorelogs", action='store_true', help=f"Connect to a server you've already checked out.")
