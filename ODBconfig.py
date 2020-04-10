@@ -9,6 +9,12 @@ SHODAN_API_KEY = ""
 #put your BinaryEdge API key here
 BINARY_API_KEY= ""
 
+#specify minium number of documents in database that you want to bother with
+mindocs =10
+
+#specify max number of docs ODBgrabber will automatically collect. Can always set --nosizelimits for specifi dbs you want all of
+maxdocs= 800000
+
 #choose directory where want to put the files, otherwise will go wherever you run script
 basepath = r""
 
