@@ -18,7 +18,7 @@ Wrote this as wanted to create one-stop OSINT tool for searching, parsing and an
 Features
 -------------
 To identify databases you can:
-* query <b>Shodan</b> and <b>BinaryEdge</b> using all possible paramters (filter by country, port number, whatever)
+* query <b>Shodan</b> and <b>BinaryEdge</b> using all possible parameters (filter by country, port number, whatever)
 * specify single IP address
 * load up file that has list of IP addresses
 * paste list of IP addresses from clipboard
