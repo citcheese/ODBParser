@@ -66,7 +66,7 @@ Installation and Requirements
 I suggest creating virtual environment for ODBgrabber so have no issues with incorrect module versions.
 <b>Note:</b> Tested ONLY on Python 3.7.3 and on Windows 10.
 
-<b>PLEASE USE RESPONSIBLY</b>
+<b>ONLY MEANT TO BE USED TO ACCESS DATABASES YOU HAVE PERMISSION TO ACCESS - PLEASE USE RESPONSIBLY</b>
 
 
 Next Steps and Known Issues
