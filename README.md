@@ -118,10 +118,9 @@ Dump Options:
                         specify parser.
   --elastic, -es        Use for IP, Shodan, BinaryEdge & Paste methods to
                         specify parser.
-  --index , -in         Specify index (ES ONLY). Use with IP arg & 'elastic'
-                        flag
-  --collection , -co    Specify collection (MDB ONLY). In format
-                        'db:collection'. Use with IP arg & 'mongo' flag
+  --database , -db      Specify database you want to grab. For MDB must be in
+                        format format 'db:collection'. Use with IP arg & 'es'
+                        or 'mdb' flag
   --getall, -g          Get all indices regardless of fields and
                         collection/index names (overrides selections in config
                         file).
