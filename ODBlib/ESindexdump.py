@@ -14,22 +14,20 @@ if not basepath:
 if not os.path.exists(basepath):
     os.makedirs(basepath)
 #to do: split json file once gets to 10gb? or maybe not, dunno
-#issue when es instance is 1.7 elasticsearch.exceptions.RequestError: RequestError(400, 'ElasticsearchIllegalArgumentException[Failed to decode scrollId]; nested: IOException[Bad Base64 input character decimal 123 in array position 0]; ', 'ElasticsearchIllegalArgumentException[Failed to decode scrollId]; nested: IOException[Bad Base64 input character decimal 123 in array position 0]; ')
-
 
 def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000):
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     os.chdir(out_dir)
-    es = Elasticsearch([{'host': ipaddress, 'port': portnumber, "timeout": 25, "requestTimeout": 20,'retry_on_timeout':True,'max_retries':5}]) #decrease timeout if you like, but good to have up there esp for really big files and if scroll size is at 10000
+    es = Elasticsearch([{'host': ipaddress, 'port': portnumber, "timeout": 1000, "requestTimeout": 1000,'retry_on_timeout':True,'max_retries':50}]) #decrease timeout if you like, but good to have up there esp for really big files and if scroll size is at 10000
     dump_fname = f'{ipaddress}_{indexname}_ES_mapping.json'
     # print(F'Dumping index \033[94m{index_name}\x1b[0m in file at \033[94m{dump_fname}\x1b[0m')
     ESversion = int(es.info()["version"]["number"].rsplit(".")[0]) #check version
     if ESversion <2: #check if less than v2 when scrolling changed
-        es = es1([{'host': ipaddress, 'port': portnumber, "timeout": 25, "requestTimeout": 20,
+        es = es1([{'host': ipaddress, 'port': portnumber, "timeout": 1000, "requestTimeout": 1000,
                              'retry_on_timeout': True,
-                             'max_retries': 5}])  # decrease timeout if you like, but good to have up there esp for really big files and if scroll size is at 10000
+                             'max_retries': 100}])  # decrease timeout if you like, but good to have up there esp for really big files and if scroll size is at 10000
 
     index_info = es.indices.get(indexname) #get mapping
     #print(f"        Got mapping for {Fore.LIGHTRED_EX}{indexname}{Fore.RESET}")

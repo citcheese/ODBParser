@@ -16,6 +16,8 @@ numfieldsreq = int(ODBconfig.numfieldsrequired)
 basepath = ODBconfig.basepath
 typelist = ODBconfig.typelist
 collectionamesIwant = ODBconfig.collectionamesIwant
+minsize = int(ODBconfig.mindocs)
+maxsize = int(ODBconfig.maxdocs)
 
 if not basepath:
     basepath = os.path.join(os.getcwd(),"open directory dumps")
@@ -205,9 +207,9 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                                 for col in collectionstoget:
                                     db, collection = col
                                     docsize = client[db][collection].estimated_document_count()
-                                    if docsize > 50:  # check to see if collection has at least X number of items
+                                    if docsize > minsize:  # check to see if collection has at least X number of items
                                         if Icareaboutsize:
-                                            if docsize < 800000:  # change this number if you want
+                                            if docsize < maxsize:
                                                 recordcount = dumpMongoDbcollectiontoCSV(db,collection,dbip,portnumber,convertTOcsv=convertTOcsv,flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata)
                                                 totalrecords += recordcount
                                                 totaldbs += 1

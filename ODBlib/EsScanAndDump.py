@@ -19,6 +19,8 @@ typelist = ODBconfig.typelist
 numfieldsreq = int(ODBconfig.numfieldsrequired)
 indicesIwant = ODBconfig.ESindicesIwant #collectionamesIwant = ["users","employees","patients","customers","clients"]
 indicesdontwant = ODBconfig.ESindicesdontwant
+minsize = int(ODBconfig.mindocs)
+maxsize = int(ODBconfig.maxdocs)
 
 if not basepath:
     basepath = os.path.join(os.getcwd(),"open directory dumps")
@@ -53,7 +55,7 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
         item["indices"]=indexstats #lets add keys here
         all.append(item)
 
-        indexstats =[x for x in indexstats if not any(y in x["index"] for y in indicesdontwant) and not x["index"].startswith(".")] #ignore system indices and ones that usually have BS logging
+        indexstats =[x for x in indexstats if not any(y in x["index"] for y in indicesdontwant) and not x["index"].startswith(".") and x["index"]!="bank"] #ignore system indices and ones that usually have BS logging
         print (f"    Found\033[94m {orig:,d}\x1b[0m indices with total of \033[94m{indextotal:,d}\x1b[0m documents (ignoring {Fore.LIGHTBLUE_EX}{orig - len(indexstats)}{Fore.RESET} of them as per configfile)")
 
         t = tqdm(indexstats, leave=True)
@@ -73,7 +75,7 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
                 keyfields = [z.lower() for z in keyfields]
                 x["db_fields"] = keyfields #add fields to server dict which will get written to file
                 if x['docs.count']: #check to see if docs.count is not None
-                    if int(x['docs.count']) > 50: #only worry about indices with more than 100 documents
+                    if int(x['docs.count']) > minsize: #only worry about indices with more than X documents
 
                         if indicesIwant: #check if there is list of index names I want to filter to
                             if any(z in indexName for z in indicesIwant):
@@ -116,7 +118,7 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
             outfile.write(f"\n{ipaddress}:{str(fullError)}\n---------------------------------------------------------\n")
         print(F"Issue with {Fore.RED}{indexName}{Fore.RESET} (check logs for more info)")
     if sys.platform == "win32": #check if user has windows otherwise below will result in error
-        if len(onestocheck)>20: #added this as sometimes got list back of obviously bad dbs but cant create rule for everythign otherwise will rule out good dbs
+        if len(onestocheck)>15: #added this as sometimes got list back of obviously bad dbs but cant create rule for everythign otherwise will rule out good dbs
             timeout = 10
             startTime = time.time()
             inp = None
@@ -199,7 +201,7 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
     indexcount = 0
     if indicestodump:
         if Icareaboutsize:
-            bigones = [x for x in indicestodump if int(x.split("??|??",1)[1].replace(',', ''))>800000] #started changing method to get all sample recrs for toobig and dump right away just in case errors later on
+            bigones = [x for x in indicestodump if int(x.split("??|??",1)[1].replace(',', ''))>maxsize] #started changing method to get all sample recrs for toobig and dump right away just in case errors later on
             for z in bigones:
                 indexName, docCount = z.split("??|??")
                 docCount = int(docCount.replace(',', ''))
@@ -256,7 +258,7 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
 
     else:
        pass
-    print(f'{Fore.RED}#############################################\n{Fore.RESET}')
+    print(f'{Fore.RED}{"-"*45}\n{Fore.RESET}')
     return (len(done),count)
 
 

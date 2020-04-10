@@ -81,8 +81,23 @@ def convertjsondumptocsv(jsonfile,flattennestedjson=True,olddumps=False,getridof
                 pass
             #outfile = jsonfile.replace('.json','.csv')
         else:
-            with open(jsonfile,encoding="utf8",errors="replace") as f:
-                con2 = json.load(f)
+            try:
+                with open(jsonfile,encoding="utf8",errors="replace") as f:
+
+                    con2 = json.load(f)
+            except ValueError: #for times when have json objects not seperated by a comma
+                with open(jsonfile, encoding="utf8", errors="replace") as f:
+                    content = f.read()
+                con2 = []
+                decoder = json.JSONDecoder()
+                while content:
+                    value, new_start = decoder.raw_decode(content)
+                    content = content[new_start:].strip()
+                    # You can handle the value directly in this loop:
+                    #print("Parsed:", value)
+                    # Or you can store it in a container and use it later:
+                    con2.append(value)
+                #print("yes")
         outfile = jsonfile.replace('.json','.csv')
         if flattennestedjson:
             try:
@@ -144,7 +159,7 @@ def jsonfoldert0mergedcsv(folder,flattennestedjson=False,olddumps=False,getridof
         if res:
             issues.append(x)
     if issues:
-        print(F"    {Fore.LIGHTGREEN_EX}Error{Fore.RESET} flattening JSON for following files so converted 'em to 'simple' CSV:")
+        print(F"    {Fore.LIGHTGREEN_EX}Error{Fore.RESET} with following files:")
         for y in issues:
             print(f"        {y}")
 
