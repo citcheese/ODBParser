@@ -25,6 +25,7 @@ if __name__ == '__main__':
     import ODBconfig
     import argparse
     import sys
+    from pathlib import Path
 
 
     class BlankLinesHelpFormatter(argparse.HelpFormatter):
@@ -77,6 +78,8 @@ if __name__ == '__main__':
     group1.add_argument("--elastic", "-es", action='store_true',
                         help=f"Use for IP, Shodan, BinaryEdge & Paste methods to specify parser.")
 
+    group1.add_argument("--database","-db",help=f"Specify database you want to grab. For MDB must be in format format 'db:collection'. Use with IP arg & 'es' or 'mdb' flag",metavar="")
+
     group1.add_argument("--index","-in",help=f"Specify index (ES ONLY). Use with IP arg & 'elastic' flag",metavar="")
     group1.add_argument("--collection","-co",help=f"Specify collection (MDB ONLY). In format 'db:collection'. Use with IP arg & 'mongo' flag",metavar="")
 
@@ -89,7 +92,7 @@ if __name__ == '__main__':
     group = parser.add_argument_group(f'{Fore.CYAN}CSV/Post-processing Options{Fore.RESET}')
     group.add_argument("--convertToCSV","-c",help=f"Convert JSON file or folder of JSON dumps to CSVs after the fact. Enter full path or folder name in current working directory",metavar="")
     group.add_argument("--dontflatten",action='store_false',help="Use if run into memory issues converting JSON files to CSV during post-processing.")
-    group.add_argument("--basic",action='store_true',help="Use with --convertToCSV flag if your JSON dumps are just line separated full records that you got from other sources.")
+    group.add_argument("--basic",action='store_true',help="Use with --convertToCSV flag if your JSON dumps are not true JSON files, but rather line separated JSON objects that you got from other sources.")
     group.add_argument("--dontclean","-dc",action='store_false',help="Choose if want to keep useless data when convert to CSV. See docs for more info.")
 
 
@@ -112,7 +115,8 @@ if __name__ == '__main__':
 
     if args.convertToCSV:
         if ".json" in args.convertToCSV: #check if file or folder of json files
-            filename = args.convertToCSV.rsplit('\\',1)[1]
+            filename = Path(args.convertToCSV).name
+            #filename = args.convertToCSV.rsplit('\\',1)[1]
 
             print(F"Converting: {Fore.LIGHTRED_EX}{filename}{Fore.RESET}" )
             res = convertjsondumptocsv(args.convertToCSV,flattennestedjson=args.dontflatten,olddumps=args.basic,getridofuselessdata=args.dontclean)
@@ -134,7 +138,7 @@ if __name__ == '__main__':
         else:
             GETALL = False
         if not args.elastic and not args.mongo:
-            print(F"You need to specify {Fore.RED}--elastic{Fore.RESET} or {Fore.RED}--mongo {Fore.RESET} for IP, Shodan and Paste methods so I know what parser to use.")
+            print(F"You need to specify {Fore.RED}--elastic (-es){Fore.RESET} or {Fore.RED}--mongo (-mdb){Fore.RESET} for IP, Shodan and Paste methods so I know what parser to use.")
             sys.exit()
         if args.ip:
             port=""
@@ -144,18 +148,15 @@ if __name__ == '__main__':
                 if ":" in ip:#check if specify port
                     ip,port = ip.split(":")
                     port = int(port)
-                if args.index:
-                    indexname=args.index
-                else:
-                    indexname=""
-                if args.collection:
-                    collection = args.collection
-                    if len(collection.split(":")) !=2:
-                        print(f"{Fore.RED}Error:{Fore.RESET} Need to specify collection in 'DBname:CollectionName' format")
-                        sys.exit()
-                else:
-                    collection = ""
+
                 if args.elastic:
+                    if args.database:
+                        indexname = args.database
+                        ignorelogs = True
+
+                    else:
+                        indexname = ""
+
                     if port:
                         donecount, recordcount = EsScanAndDump.main(ip, portnumber=port, Icareaboutsize=careboutsize,
                                                       ignorelogs=ignorelogs, csvconvert=args.csv, index=indexname,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
@@ -166,6 +167,16 @@ if __name__ == '__main__':
                                                                     index=indexname, getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
 
                 elif args.mongo:
+                    if args.database:
+                        ignorelogs = True
+                        collection = args.database
+                        if len(collection.split(":")) != 2:
+                            print(
+                                f"{Fore.RED}Error:{Fore.RESET} Need to specify collection in {Fore.CYAN}'DBname:CollectionName'{Fore.RESET} format")
+                            sys.exit()
+                    else:
+                        collection = ""
+
                     if port:
                         mongoscraper.mongodbscraper(ip,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,getcollection=collection,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
                     else:
@@ -300,18 +311,24 @@ if __name__ == '__main__':
             for x in listres:
                 ipaddress,product,port = x
                 if ipaddress not in alreadyparsedips:
-                    counts+=1
+                    try:
+                        counts+=1
 
-                    print(f"[{Fore.LIGHTBLUE_EX}{counts}{Fore.RESET}/{totalshodanres-len(alreadyparsedips)}]")
+                        print(f"[{Fore.LIGHTBLUE_EX}{counts}{Fore.RESET}/{totalshodanres-len(alreadyparsedips)}]")
 
-                    if "elastic" in product.lower():
-                        donecount, recordcount = EsScanAndDump.main(ipaddress,portnumber=port,csvconvert=args.csv,ignorelogs=ignorelogs,Icareaboutsize=careboutsize,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
-                        donedbs += donecount
-                        totalrecords += recordcount
+                        if "elastic" in product.lower():
+                            donecount, recordcount = EsScanAndDump.main(ipaddress,portnumber=port,csvconvert=args.csv,ignorelogs=ignorelogs,Icareaboutsize=careboutsize,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
+                            donedbs += donecount
+                            totalrecords += recordcount
 
-                    elif "mongodb" in product.lower():
-                        donecount, recordcount = mongoscraper.mongodbscraper(ipaddress,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
-                        donedbs += donecount
-                        totalrecords += recordcount
+                        elif "mongodb" in product.lower():
+                            donecount, recordcount = mongoscraper.mongodbscraper(ipaddress,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
+                            donedbs += donecount
+                            totalrecords += recordcount
+                    except KeyboardInterrupt:
+                        print("\n    Ok, skipping server...")
+                        print(f'{Fore.RED}{"-" * 45}\n{Fore.RESET}')
+
+                        pass
             printsummary(donedbs, totalrecords)
 
