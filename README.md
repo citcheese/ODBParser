@@ -10,6 +10,8 @@ TL;DR
 -------------
 ODBGrabber is a tool to search for open databases that contain information you are interested in exposing. Or if you already know IP's you want to connect to, you can specify those.
 
+<b>ONLY MEANT TO BE USED TO ACCESS DATABASES YOU HAVE PERMISSION TO ACCESS OR TO WARN SERVER OWNERS OF IRRESPONSIBLE DATABASE MAINTENANCE - PLEASE USE RESPONSIBLY</b>
+
 
 What is this?
 -------------
