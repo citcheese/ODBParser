@@ -13,7 +13,7 @@ ODBGrabber is a tool to search for open databases that contain information you a
 
 What is this?
 -------------
-Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to identify leakages of PII on third-party servers . Other tools seem to either only query open databases or dump them once you've identified them and then will dump db's indiscriminately resulting in bunch of meaningless data. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
+Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to identify leakages of PII on third-party servers . Other tools seem to either only query open databases or dump them once you've identified them and then will dump db's indiscriminately. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
 
 Features
 -------------
