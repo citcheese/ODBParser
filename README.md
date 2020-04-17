@@ -8,12 +8,12 @@
 
 TL;DR
 -------------
-ODBGrabber is a tool to search for open databases that will dump indices/collections based on criteria YOU define. Or if you already know IP's you want to connect to, you can specify those.
+ODBGrabber is a tool to search for open databases that contain information you are interested in exposing. Or if you already know IP's you want to connect to, you can specify those.
 
 
 What is this?
 -------------
-Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to get the data I care about as boy is there a lot of junk being hosted out there. Other tools seem to either only query open databases or dump them once you've identified them and then will own dump db's indiscriminately resulting in bunch of data you may not care about. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
+Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to identify leakages of PII on third-party servers . Other tools seem to either only query open databases or dump them once you've identified them and then will dump db's indiscriminately resulting in bunch of meaningless data. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
 
 Features
 -------------
@@ -45,7 +45,8 @@ Other features:
 
 Customization
 -------------
-See the odbconfig.py file to specify your parameters, because really name of the game is getting data YOU care about. I provided some examples in the config file. Play around with them!
+See the odbconfig.py file to specify your parameters, because really name of the game is exposing the data YOU are interested in. I provided some examples in the config file. Play around with them!
+
 You can:
 
 * specify what index or collection names you want to collect by specifying substrings in config file. For example, if have the term "client", script will pull index called "clients" or "client_data." I recommend you keep these lists blank as you never know what databases you care about will be called and instead specify the fields you care about.
@@ -66,7 +67,7 @@ Installation and Requirements
 I suggest creating virtual environment for ODBgrabber so have no issues with incorrect module versions.
 <b>Note:</b> Tested ONLY on Python 3.7.3 and on Windows 10.
 
-<b>ONLY MEANT TO BE USED TO ACCESS DATABASES YOU HAVE PERMISSION TO ACCESS - PLEASE USE RESPONSIBLY</b>
+<b>ONLY MEANT TO BE USED TO ACCESS DATABASES YOU HAVE PERMISSION TO ACCESS OR TO WARN SERVER OWNERS OF IRRESPONSIBLE DATABASE MAINTENANCE - PLEASE USE RESPONSIBLY</b>
 
 
 Next Steps and Known Issues
