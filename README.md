@@ -1,16 +1,16 @@
 <table border =0 color=white>
     <tr>
         <td valign="top"><img src="./glassdb.png" width="100" height="100" /></td>
-        <td valign="middle"><h1>ODBgrabber</h1></td>
+        <td valign="middle"><h1>ODBParser</h1></td>
     </tr>
 </table>
 
 
 TL;DR
 -------------
-ODBGrabber is a tool to search for open databases that contain information you are interested in exposing. Or if you already know IP's you want to connect to, you can specify those.
+ODBParser is a tool to search for open databases that contain information you are interested in exposing. Or if you already know IP's you want to connect to, you can specify those.
 
-<b>ONLY meant to be used to dentify exposed PII and warn server owners of irresponsible database maintenanceaccess databases OR to query databases you have permission to access to'
+<b>ONLY to be used to identify exposed PII and warn server owners of irresponsible database maintenance OR to query databases you have permission to access!
 
 PLEASE USE RESPONSIBLY</b>
 
@@ -54,7 +54,7 @@ See the odbconfig.py file to specify your parameters, because really name of the
 You can:
 
 * specify what index or collection names you want to collect by specifying substrings in config file. For example, if have the term "client", script will pull index called "clients" or "client_data." I recommend you keep these lists blank as you never know what databases you care about will be called and instead specify the fields you care about.
-* specify what fields you care about: if you only want to grab ES indicdes that have  "email" in a field name, e.g."user_emails", you can do that. If you want to make sure the index has at least 2 fields you care about, you can do that too. Or if you just want to grab everything no matter what fields are in there, you can do that too.
+* specify what fields you care about: if you only want to grab ES indices that have  "email" in a field name, e.g."user_emails", you can do that. If you want to make sure the index has at least 2 fields you care about, you can do that too. Or if you just want to grab everything no matter what fields are in there, you can do that too.
 * specify what indices you DON'T want e.g., system index names and others that are generally used for basic logging. Examples provided in config file.
 * override config and grab everything on a server
 * specify output (default is JSON, can choose CSV)
@@ -68,7 +68,7 @@ Installation and Requirements
 * configure parameters in ODBconfig.py file
 * install requirements from file
 
-I suggest creating virtual environment for ODBgrabber so have no issues with incorrect module versions.
+I suggest creating virtual environment for ODBParser so have no issues with incorrect module versions.
 <b>Note:</b> Tested ONLY on Python 3.7.3 and on Windows 10.
 
 <b>ONLY MEANT TO BE USED TO ACCESS DATABASES YOU HAVE PERMISSION TO ACCESS OR TO WARN SERVER OWNERS OF IRRESPONSIBLE DATABASE MAINTENANCE - PLEASE USE RESPONSIBLY</b>
@@ -79,14 +79,14 @@ Next Steps and Known Issues
 * clean up code a bit more
 * multithread various processes.
 * expand to other db types
-* add other open directory search engines (zoomeye, etc.)
+* add other open directory search engines (Zoomeye, etc.)
 * unable to scroll past first page for certain ES instances due to way ES <2.0 works. Appreciate any help! <b>Pretty sure fixed this. Open issue if get scrollid errors</b>
 
 Usage
 -------------
 ```
-    Examples: python ODBGrabber.py -cn US -p 8080 -t users --elastic --shodan --csv --limit 100
-              python ODBGrabber.py -ip 192.168.2:8080 --mongo --ignorelogs --nosizelimits
+    Examples: python ODBParser.py -cn US -p 8080 -t users --elastic --shodan --csv --limit 100
+              python ODBParser.py -ip 192.168.2:8080 --mongo --ignorelogs --nosizelimits
 
     Damage to-date: 0 servers parsed | 0 databases dumped | 0 records pulled
     _____________________________________________________________________________
@@ -134,7 +134,7 @@ Dump Options:
                         count is 800,000.
   --csv                 Convert JSON dumps into CSV format on the fly. (Puts
                         JSON files in backup folder in case there is issue
-                        with coversion)
+                        with conversion)
 
 CSV/Post-processing Options:
   --convertToCSV , -c   Convert JSON file or folder of JSON dumps to CSVs
@@ -148,4 +148,3 @@ CSV/Post-processing Options:
   --dontclean, -dc      Choose if want to keep useless data when convert to
                         CSV. See docs for more info.
  ```
-
