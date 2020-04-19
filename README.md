@@ -17,11 +17,11 @@ PLEASE USE RESPONSIBLY</b>
 
 What is this?
 -------------
-Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to identify leakages of PII on third-party servers . Other tools seem to either only query open databases or dump them once you've identified them and then will dump db's indiscriminately. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
+Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to identify leakages of PII on third-party servers . Other tools seem to either only search for open databases or dump them once you've identified them and then will grab data indiscriminately. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
 
 Features
 -------------
-To identify databases you can:
+To identify open databases you can:
 * query <b>Shodan</b> and <b>BinaryEdge</b> using all possible parameters (filter by country, port number, whatever)
 * specify single IP address
 * load up file that has list of IP addresses
@@ -39,10 +39,9 @@ Post-Processing:
 Other features:
 * keeps track of all the IP addresses and databases you have queried along with info about each server.
 * maintains stats file with number of IP's you've queried, number of databases you've parsed and number of records you've dumped
-* convert dumps you already have to CSV
+* convert JSON dumps you already have to CSV
 * for every database that has total number of records above your limit, script will create an entry in a special file along with 5 sample records so you can review and decide whether the database is worth grabbing
 * Output is JSON. You can convert the files to CSV on the fly or you can convert only certain files after run is complete (I recommend latter). Converted JSON files will be moved to folder called "JSON backups" in same directory. <b>NOTE:</b> When converting to CSV, script drops exact duplicate rows and drops columns and rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather have exact copy of JSON file.
-* If you already have JSON files that you have dumped from other sources, you can convert them to CSV with the script.
 * <b>Windows ONLY</b> If script pulls back huge number of indices that have field you care about, script will list names of the dbs, pause and give you ten seconds to decide whether you want to go ahead and pull all the data from every index as I've found if you get too many databases returned even after you've specified fields you want, there is a good chance data is fake or useless logs and you can usually tell from name whether either possibility is the case. If you don't act within 10 seconds, script will go ahead and dump every index.
 * as you may have noticed, lot of people have been scanning for MongoDB databases and holding them hostage, often changing name to something like "TO_RESTORE_EMAIL_XXXRESTORE.COM." The MongoDb scraper will ignore all databases and collections that have been pwned by checking name of DB/collection against list of strings that indicate pwnage
 * script is pretty verbose (maybe too verbose) but I like seeing what's going on. Feel free to silence print statements if you prefer.
@@ -58,7 +57,7 @@ You can:
 * specify what indices you DON'T want e.g., system index names and others that are generally used for basic logging. Examples provided in config file.
 * override config and grab everything on a server
 * specify output (default is JSON, can choose CSV)
-* the minimum size database script will dump is 40 documents and max is <b>800000</b>, but you can set flag to grab database with unlimited number of documents if you like.
+* set minimum and maximum size database script will dump by default and you can set flag to override max docs on case by case basis.
 
 
 Installation and Requirements
@@ -71,7 +70,7 @@ Installation and Requirements
 I suggest creating virtual environment for ODBParser so have no issues with incorrect module versions.
 <b>Note:</b> Tested ONLY on Python 3.7.3 and on Windows 10.
 
-<b>ONLY MEANT TO BE USED TO ACCESS DATABASES YOU HAVE PERMISSION TO ACCESS OR TO WARN SERVER OWNERS OF IRRESPONSIBLE DATABASE MAINTENANCE - PLEASE USE RESPONSIBLY</b>
+<b>PLEASE USE RESPONSIBLY</b>
 
 
 Next Steps and Known Issues
