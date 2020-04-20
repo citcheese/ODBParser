@@ -11,7 +11,7 @@ TL;DR
 ODBParser is a tool to search for PII being exposed in open databases. 
 
 <b>ONLY to be used to identify exposed PII and warn server owners of irresponsible database maintenance 
-    <br>OR to query databases you have permission to access!
+    <br>    OR to query databases you have permission to access!
 
 PLEASE USE RESPONSIBLY</b>
 
