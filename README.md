@@ -8,7 +8,7 @@
 
 TL;DR
 -------------
-ODBParser is a tool to search for open databases that contain information you are interested in exposing. Or if you already know IP's you want to connect to, you can specify those.
+ODBParser is a tool to search for PII being exposed in open databases. 
 
 <b>ONLY to be used to identify exposed PII and warn server owners of irresponsible database maintenance OR to query databases you have permission to access!
 
@@ -17,7 +17,7 @@ PLEASE USE RESPONSIBLY</b>
 
 What is this?
 -------------
-Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to identify leakages of PII on third-party servers . Other tools seem to either only search for open databases or dump them once you've identified them and then will grab data indiscriminately. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
+Wrote this as wanted to create one-stop OSINT tool for searching, parsing and analyzing open databases in order to identify leakages of PII on third-party servers. Other tools seem to either only search for open databases or dump them once you've identified them and then will grab data indiscriminately. Grew from function or two into what's in this repo, so code isn't as clean and pretty as it could be.
 
 Features
 -------------
