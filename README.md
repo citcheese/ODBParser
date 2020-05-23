@@ -43,7 +43,8 @@ Other features:
 * maintains stats file with number of IP's you've queried, number of databases you've parsed and number of records you've dumped
 * convert JSON dumps you already have to CSV
 * for every database that has total number of records above your limit, script will create an entry in a special file along with 5 sample records so you can review and decide whether the database is worth grabbing
-* Output is JSON. You can convert the files to CSV on the fly or you can convert only certain files after run is complete (I recommend latter). Converted JSON files will be moved to folder called "JSON backups" in same directory. <b>NOTE:</b> When converting to CSV, script drops exact duplicate rows and drops columns and rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather have exact copy of JSON file.
+* Default output is line-separated JSON file with a JSON object on each line. You can choose to have it output a "proper JSON" file by using the "properjson" flag 
+* You can convert the files to CSV on the fly or you can convert only certain files after run is complete (I recommend latter). Converted JSON files will be moved to folder called "JSON backups" in same directory. <b>NOTE:</b> When converting to CSV, script drops exact duplicate rows and drops columns and rows where all values are NaN, because that's what I wanted to do. Feel free to edit function if you'd rather have exact copy of JSON file.
 * <b>Windows ONLY</b> If script pulls back huge number of indices that have field you care about, script will list names of the dbs, pause and give you ten seconds to decide whether you want to go ahead and pull all the data from every index as I've found if you get too many databases returned even after you've specified fields you want, there is a good chance data is fake or useless logs and you can usually tell from name whether either possibility is the case. If you don't act within 10 seconds, script will go ahead and dump every index.
 * as you may have noticed, lot of people have been scanning for MongoDB databases and holding them hostage, often changing name to something like "TO_RESTORE_EMAIL_XXXRESTORE.COM." The MongoDb scraper will ignore all databases and collections that have been pwned by checking name of DB/collection against list of strings that indicate pwnage
 * script is pretty verbose (maybe too verbose) but I like seeing what's going on. Feel free to silence print statements if you prefer.
@@ -124,6 +125,8 @@ Dump Options:
                         specify parser.
   --elastic, -es        Use for IP, Shodan, BinaryEdge & Paste methods to
                         specify parser.
+  --properjson, -pj     Add this flag if would like out put to be proper JSON
+                        file. Default is one JSON string object per line.
   --database , -db      Specify database you want to grab. For MDB must be in
                         format format 'db:collection'. Use with IP arg & 'es'
                         or 'mdb' flag
@@ -135,7 +138,7 @@ Dump Options:
                         count is 800,000.
   --csv                 Convert JSON dumps into CSV format on the fly. (Puts
                         JSON files in backup folder in case there is issue
-                        with conversion)
+                        with coversion)
 
 CSV/Post-processing Options:
   --convertToCSV , -c   Convert JSON file or folder of JSON dumps to CSVs
