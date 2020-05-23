@@ -36,49 +36,55 @@ def getCollectionKeys(collection):
     keys_set = set(keys_list)
     return keys_set
 
-def dumpMongoDbcollectiontoCSV(database, collection, dbip,portnumber,convertTOcsv=False,flattennestedjson=False,getridofuselessdata=False):
+def dumpMongoDbcollectiontoCSV(database, collection, dbip,portnumber,convertTOcsv=False,flattennestedjson=False,getridofuselessdata=False,properjson=False):
     client = pymongo.MongoClient(f"mongodb://{dbip}:{str(portnumber)}",
                                  serverSelectionTimeoutMS=5000)  # defaults to port 27017, timeout in ms
 
-    cursor = client[database][collection].find({}, {'_id': False})  # grab all records
+    cursor = client[database][collection].find({}, {'_id': False})  # grab all records #if get bsonerror year X out of range, will need to skip grabbig that field by adding fieldname:false after "_id":false
     if not os.path.exists(os.path.join(basepath, dbip)):
         os.makedirs(os.path.join(basepath, dbip))
 
     print(
-        f"                Dumping records from {Fore.LIGHTRED_EX}{collection}{Fore.RESET} in {Fore.LIGHTRED_EX}{database} {Fore.RESET}")
+        f"            Dumping records from {Fore.LIGHTRED_EX}{collection}{Fore.RESET} in {Fore.LIGHTRED_EX}{database} {Fore.RESET}")
 
     count9 = 0
-    with open(os.path.join(basepath, dbip, f"{dbip}_{database}_{collection}_MDB.json"), "w") as f:
-        f.write('[')
+    with open(os.path.join(basepath, dbip, f"{dbip}_{database}_{collection}_MDB.json"), "w",encoding="utf8") as f:
+        if properjson:
+            f.write('[')
         for document in cursor:
             try:
-                f.write(json.dumps(document, default=json_util.default))  # json_util.default))
+                if properjson:
+                    f.write(json.dumps(document, default=json_util.default))  # json_util.default))
 
-                f.write(',')
+                    f.write(',')
+                else:
+                    f.write(json.dumps(document, default=json_util.default) + "\n")
             except Exception as e:
                 pass
             count9 += 1
             sumt = count9 / 50
             if sumt.is_integer():
-                print(f"                    Now writing record: {count9:,d}", end='\r')  # to show some progress of dumping file
-        f.seek(0, os.SEEK_END)
-        f.seek(f.tell() - 1,
-               os.SEEK_SET)  # to avoid switching file mode to binary as discussed here: https://stackoverflow.com/questions/21533391/seeking-from-end-of-file-throwing-unsupported-exception
-        f.truncate()
-        f.write("]")
-    #print(
-     #   f"        Dumped {Fore.LIGHTBLUE_EX}{count9:,d}{Fore.RESET} records from {Fore.LIGHTRED_EX}{collection}{Fore.RESET} in {Fore.LIGHTRED_EX}{database} {Fore.RESET}")
+                print(f"                    Now writing record: {Fore.LIGHTBLUE_EX}{count9:,d}{Fore.RESET}", end='\r')  # to show some progress of dumping file
+        if properjson:
+            f.seek(0, os.SEEK_END)
+            f.seek(f.tell() - 1, os.SEEK_SET)  # to avoid switching file mode to binary as discussed here: https://stackoverflow.com/questions/21533391/seeking-from-end-of-file-throwing-unsupported-exception
+            f.truncate()
+            f.write("]")
+
     if convertTOcsv:
-        if os.path.isfile(os.path.join(basepath, dbip,
-                                       f"{dbip}_{database}_{collection}_MDB.json")):  # check if the file exists first
+        if os.path.isfile(os.path.join(basepath, dbip, f"{dbip}_{database}_{collection}_MDB.json")):  # check if the file exists first
+            if properjson:
+                OLDDUMPS = False
+            else:
+                OLDDUMPS = True
             convertjsondumptocsv(
-                os.path.join(basepath, dbip, f"{dbip}_{database}_{collection}_MDB.json"),flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata)
+                os.path.join(basepath, dbip, f"{dbip}_{database}_{collection}_MDB.json"),flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata,olddumps=OLDDUMPS)
             print(f"{Fore.GREEN}        Converted{Fore.RESET} dump to CSV for you...")
 
     return (count9)
 
 
-def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careaboutpwneddbs=True,ignorelogfile=False,Icareaboutsize=True,convertTOcsv=False,typelist=typelist,getall=False,getcollection="",flattennestedjson=False,getridofuselessdata=False):
+def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careaboutpwneddbs=True,ignorelogfile=False,Icareaboutsize=True,convertTOcsv=False,typelist=typelist,getall=False,getcollection="",flattennestedjson=False,getridofuselessdata=False,PROPERJSON=False):
     import datetime
     global collectionamesIwant
     global basepath
@@ -145,7 +151,7 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                 outfile.write(f"{dbip}:{str(e)}\n")
         if getcollection:
             db,collection = getcollection.split(":")
-            totalrecords = dumpMongoDbcollectiontoCSV(db,collection,dbip,portnumber,convertTOcsv=convertTOcsv,flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata)
+            totalrecords = dumpMongoDbcollectiontoCSV(db,collection,dbip,portnumber,convertTOcsv=convertTOcsv,flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata,properjson=PROPERJSON)
             cdict = [{"ipaddress": dbip,"port":portnumber, "databaseinfo": ""}]
             totaldbs = 1
 
@@ -210,11 +216,9 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                                     if docsize > minsize:  # check to see if collection has at least X number of items
                                         if Icareaboutsize:
                                             if docsize < maxsize:
-                                                recordcount = dumpMongoDbcollectiontoCSV(db,collection,dbip,portnumber,convertTOcsv=convertTOcsv,flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata)
+                                                recordcount = dumpMongoDbcollectiontoCSV(db,collection,dbip,portnumber,convertTOcsv=convertTOcsv,flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata,properjson=PROPERJSON)
                                                 totalrecords += recordcount
                                                 totaldbs += 1
-
-                                            # print(f"        A collection you may want is: {Fore.LIGHTRED_EX}{y} in {x}{Fore.RESET} with {Fore.LIGHTBLUE_EX}{client[x][y].estimated_document_count():,d} {Fore.RESET}documents",end='\r')
 
                                             else:
                                                 item = {}
@@ -229,13 +233,13 @@ def mongodbscraper(dbip,portnumber=27017,careaboutpwnedcollections=True,careabou
                                                 toobig.append(item)
                                         else:
                                             recordcount = dumpMongoDbcollectiontoCSV(db, collection, dbip, portnumber,
-                                                                                     convertTOcsv=convertTOcsv,flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata)
+                                                                                     convertTOcsv=convertTOcsv,flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata,properjson=PROPERJSON)
                                             totalrecords += recordcount
                                             totaldbs += 1
                                     else:
                                         print(f"            Skipping {Fore.LIGHTRED_EX} {db}:{collection} {Fore.RESET} because only has {Fore.LIGHTBLUE_EX}{docsize}{Fore.RESET} records")
                     if totalrecords == 0:
-                        print(f"    {Fore.LIGHTGREEN_EX}No collections{Fore.RESET} with fields matching specified strings found!")
+                        print(f"    {Fore.CYAN}No collections{Fore.RESET} with fields matching specified strings found!")
                 cdict = [{"ipaddress": dbip, "port":portnumber,"databaseinfo": collectionNames}]
                 if toobig:
                     jsonappendfile(os.path.join(basepath, "Mongotoobig.json"), toobig)

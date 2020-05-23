@@ -15,7 +15,7 @@ if not os.path.exists(basepath):
     os.makedirs(basepath)
 #to do: split json file once gets to 10gb? or maybe not, dunno
 
-def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000):
+def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000,properjson=False):
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
@@ -52,8 +52,12 @@ def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000):
             hits.append(x["_source"])
         count = 1
         filecount =0
-        with open(os.path.join(out_dir, f"{ipaddress}_{indexname}_ES.json"), "w") as f:
-            json.dump(hits,f)
+        with open(os.path.join(out_dir, f"{ipaddress}_{indexname}_ES.json"), "w",encoding="utf8") as f:
+            if properjson:
+                json.dump(hits,f)
+            else:
+                for y in hits:
+                    f.write(json.dumps(y)+"\n")
         updatestatsfile(1, len(hits), 1, type="ElasticSearch")
 
         if scroll_size < totalhits:#was getting scroll error when trying to get hits on page 2 if no page 2, so fuck it wrote this condition
@@ -74,14 +78,20 @@ def newESdump(ipaddress,indexname,out_dir, portnumber=9200,size=1000):
                         print(F"        Dumping results from page {Fore.LIGHTBLUE_EX}{str(count)}{Fore.RESET}", end="\r")
 
                         with open(os.path.join(out_dir,f"{ipaddress}_{indexname}_ES.json"), "ab+") as newZ: #so dont have to store whole json in memory
-                            newZ.seek(-1, 2)
-                            newZ.truncate()
-                            newZ.write(",".encode())
-                            for y in hits[:-1]:
-                                newZ.write(json.dumps(y).encode())
+
+                            if properjson:
+                                newZ.seek(-1, 2)
+                                newZ.truncate()
                                 newZ.write(",".encode())
-                            newZ.write(json.dumps(hits[-1]).encode())
-                            newZ.write(']'.encode())
+                                for y in hits[:-1]:
+                                    newZ.write(json.dumps(y).encode())
+                                    newZ.write(",".encode())
+                                newZ.write(json.dumps(hits[-1]).encode())
+                                newZ.write(']'.encode())
+                            else:
+                                for y in hits:
+                                    newZ.write(json.dumps(y).encode()+b"\n")
+
                         updatestatsfile(0, len(hits), 0, type="ElasticSearch")
 
                 except Exception as e:

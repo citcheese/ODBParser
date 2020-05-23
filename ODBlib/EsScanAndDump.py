@@ -142,7 +142,7 @@ def identifyindices(ipaddress,portnumber=9200,indicesIwant=indicesIwant): #filte
     return onestocheck
 
 
-def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconvert=False,index="",getall=False,flattennestedjson=False,getridofuselessdata=False):
+def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconvert=False,index="",getall=False,flattennestedjson=False,getridofuselessdata=False,PROPERJSON=False):
     portnumber = int(portnumber) #make sure port is INT otherwise wont work right
     indicestodump =""
 
@@ -236,7 +236,7 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
 
             try:
                 ESindexdump.newESdump(ipaddress, indexName, os.path.join(basepath, ipaddress),
-                                      portnumber=portnumber)
+                                      portnumber=portnumber,properjson=PROPERJSON)
 
                 count+=int(docCount)
                 done.append(indexName)
@@ -247,8 +247,12 @@ def main(ipaddress,Icareaboutsize=True,portnumber=9200,ignorelogs=False,csvconve
                     outfile.write(f"{ipaddress}:{str(fullError)}\n---------------------------------------------------------\n")
                 print(F"{indexName} had an issue (check logs for more info)")
             if csvconvert: #ok so you want to convert json to csv, fine
+                if PROPERJSON:
+                    OLDDUMPS = False
+                else:
+                    OLDDUMPS = True
                 if os.path.isfile(os.path.join(basepath,ipaddress,f"{ipaddress}_{indexName}_ES.json")): #check if the file exists first
-                    convertjsondumptocsv(os.path.join(basepath,ipaddress,f"{ipaddress}_{indexName}_ES.json"),flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata)
+                    convertjsondumptocsv(os.path.join(basepath,ipaddress,f"{ipaddress}_{indexName}_ES.json"),flattennestedjson=flattennestedjson,getridofuselessdata=getridofuselessdata,olddumps=OLDDUMPS)
                     print(f"{Fore.GREEN}        Converted{Fore.RESET} dump to CSV for you...")
 
         if index:
