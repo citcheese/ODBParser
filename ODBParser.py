@@ -76,7 +76,7 @@ if __name__ == '__main__':
                         help="Use for IP, Shodan, BinaryEdge & Paste methods to specify parser.")
     group1.add_argument("--elastic", "-es", action='store_true',
                         help=f"Use for IP, Shodan, BinaryEdge & Paste methods to specify parser.")
-
+    group1.add_argument("--properjson","-pj",action='store_true',help="Add this flag if would like out put to be proper JSON file. Default is one JSON string object per line.")
     group1.add_argument("--database","-db",help=f"Specify database you want to grab. For MDB must be in format format 'db:collection'. Use with IP arg & 'es' or 'mdb' flag",metavar="")
     group1.add_argument("--getall","-g",action='store_true',help=f"Get all indices regardless of fields and collection/index names (overrides selections in config file).")
 
@@ -107,6 +107,7 @@ if __name__ == '__main__':
         sys.exit()
     careboutsize = args.nosizelimits
     ignorelogs = args.ignorelogs
+    properjson = args.properjson
 
     if args.convertToCSV:
         if ".json" in args.convertToCSV: #check if file or folder of json files
@@ -154,12 +155,12 @@ if __name__ == '__main__':
 
                     if port:
                         donecount, recordcount = EsScanAndDump.main(ip, portnumber=port, Icareaboutsize=careboutsize,
-                                                      ignorelogs=ignorelogs, csvconvert=args.csv, index=indexname,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
+                                                      ignorelogs=ignorelogs, csvconvert=args.csv, index=indexname,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean,PROPERJSON=properjson)
 
                     else:
                         donecount, recordcount = EsScanAndDump.main(ip, Icareaboutsize=careboutsize,
                                                                     ignorelogs=ignorelogs, csvconvert=args.csv,
-                                                                    index=indexname, getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
+                                                                    index=indexname, getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean,PROPERJSON=properjson)
 
                 elif args.mongo:
                     if args.database:
@@ -173,9 +174,9 @@ if __name__ == '__main__':
                         collection = ""
 
                     if port:
-                        mongoscraper.mongodbscraper(ip,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,getcollection=collection,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
+                        mongoscraper.mongodbscraper(ip,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,getcollection=collection,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean,PROPERJSON=properjson)
                     else:
-                        mongoscraper.mongodbscraper(ip,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,getcollection=collection,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
+                        mongoscraper.mongodbscraper(ip,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,getcollection=collection,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean,PROPERJSON=properjson)
             else:
                 print(f"{Fore.RED}Error:{Fore.RESET} {ip} does not appear to be a valid IP address")
                 sys.exit()
@@ -222,13 +223,13 @@ if __name__ == '__main__':
                     if args.elastic:
                         if not port:
                             port = 9200
-                        donecount, recordcount = EsScanAndDump.main(ip,portnumber=port,ignorelogs=ignorelogs,csvconvert=args.csv,Icareaboutsize=careboutsize,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
+                        donecount, recordcount = EsScanAndDump.main(ip,portnumber=port,ignorelogs=ignorelogs,csvconvert=args.csv,Icareaboutsize=careboutsize,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean,PROPERJSON=properjson)
                         donedbs += donecount
                         totalrecords += recordcount
                     elif args.mongo:
                         if not port:
                             port = 27017
-                        donecount, recordcount = mongoscraper.mongodbscraper(ip, portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
+                        donecount, recordcount = mongoscraper.mongodbscraper(ip, portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean,PROPERJSON=properjson)
                         donedbs += donecount
                         totalrecords += recordcount
             printsummary(donedbs,totalrecords)
@@ -312,12 +313,12 @@ if __name__ == '__main__':
                         print(f"[{Fore.LIGHTBLUE_EX}{counts}{Fore.RESET}/{totalshodanres-len(alreadyparsedips)}]")
 
                         if "elastic" in product.lower():
-                            donecount, recordcount = EsScanAndDump.main(ipaddress,portnumber=port,csvconvert=args.csv,ignorelogs=ignorelogs,Icareaboutsize=careboutsize,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
+                            donecount, recordcount = EsScanAndDump.main(ipaddress,portnumber=port,csvconvert=args.csv,ignorelogs=ignorelogs,Icareaboutsize=careboutsize,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean,PROPERJSON=properjson)
                             donedbs += donecount
                             totalrecords += recordcount
 
                         elif "mongodb" in product.lower():
-                            donecount, recordcount = mongoscraper.mongodbscraper(ipaddress,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean)
+                            donecount, recordcount = mongoscraper.mongodbscraper(ipaddress,portnumber=port,ignorelogfile=ignorelogs,Icareaboutsize=careboutsize,convertTOcsv=args.csv,getall=GETALL,flattennestedjson=args.dontflatten,getridofuselessdata=args.dontclean,PROPERJSON=properjson)
                             donedbs += donecount
                             totalrecords += recordcount
                     except KeyboardInterrupt:
