@@ -32,6 +32,7 @@ Dumping options:
 * parses all databases/collections to identify data you specify
 * grab everything hosted on server
 * grab just one index/collection
+* Use ctrl+c to skip dumping certain index
 
 Post-Processing:
 * convert JSON dumps to CSV
