@@ -1,6 +1,6 @@
 colorama==0.3.9
 elasticsearch==7.1.0
-pandas==0.23.0
+pandas==0.25.3
 pymongo==3.10.1
 pyperclip==1.7.0
 shodan==1.13.0

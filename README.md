@@ -75,6 +75,24 @@ I suggest creating virtual environment for ODBParser so have no issues with inco
 
 <b>PLEASE USE RESPONSIBLY</b>
 
+Docker images
+-------------
+If you use docker please build image
+```bash
+docker build -t odbparser . 
+```
+
+After build, run with args
+```bash
+docker run odbparser --help
+docker run odbparser -cn US -p 8080 -t users --elastic --shodan --csv --limit 100
+```
+
+For configuration you can use volume
+
+```bash
+docker run -v /path/to/ODBconfig.py:/opt/ODBconfig.py odbparser --help
+```
 
 Next Steps and Known Issues
 -------------
